@@ -141,4 +141,18 @@ class TimetableMatrix extends Page
             })->get();
         }
     }
+    public function saveTimetable()
+    {
+    if (!$this->selectedClass) {
+        \Filament\Notifications\Notification::make()->title('Chưa chọn lớp!')->danger()->send();
+        return;
+    }
+
+    // Chỉ gửi thông báo, KHÔNG dùng redirect() để ở lại trang tạo cái mới
+    \Filament\Notifications\Notification::make()
+        ->title('Lưu thành công!')
+        ->body('Thời khóa biểu đã được ghi nhận. Bạn có thể tiếp tục xếp lịch cho lớp khác.')
+        ->success()
+        ->send();
+    }
 }

@@ -43,39 +43,34 @@ class TeacherResource extends Resource
 
     public static function table(Table $table): Table
     {
-        return $table
-            ->columns([
-                Tables\Columns\TextColumn::make('name')
-                    ->label('Họ và tên')
-                    ->searchable(),
-                    
-                Tables\Columns\TextColumn::make('short_code')
-                    ->label('Viết tắt')
-                    ->searchable(),
-                    
-                Tables\Columns\TextColumn::make('lookup_code')
-                    ->label('Mã tra cứu')
-                    ->searchable()
-                    ->copyable()
-                    ->badge(),
-                    
-                Tables\Columns\TextColumn::make('created_at')
-                    ->dateTime()
-                    ->sortable()
-                    ->toggleable(isToggledHiddenByDefault: true),
-            ])
-            ->filters([
-                //
-            ])
-            ->actions([
-                Tables\Actions\EditAction::make(),
-                Tables\Actions\DeleteAction::make(),
-            ])
-            ->bulkActions([
-                Tables\Actions\BulkActionGroup::make([
-                    Tables\Actions\DeleteBulkAction::make(),
-                ]),
-            ]);
+    return $table
+        ->columns([
+            Tables\Columns\TextColumn::make('name')
+                ->label('Họ tên Giáo viên')
+                ->searchable()
+                ->description(fn (Teacher $record): string => $record->short_code ?? ''),
+            
+            Tables\Columns\TextColumn::make('subjects.name')
+                ->label('Môn giảng dạy')
+                ->badge()
+                ->color('info'),
+
+            Tables\Columns\TextColumn::make('homeroomClass.name')
+                ->label('Chủ nhiệm')
+                ->placeholder('Không có')
+                ->weight('bold'),
+
+            Tables\Columns\TextColumn::make('quota')
+                ->label('Định mức')
+                ->numeric()
+                ->suffix(' tiết/tuần'),
+
+            Tables\Columns\TextColumn::make('remaining_quota')
+                ->label('Còn lại')
+                ->numeric()
+                ->color(fn ($state) => $state < 0 ? 'danger' : 'success')
+                ->weight('black'),
+        ]);
     }
 
     public static function getRelations(): array

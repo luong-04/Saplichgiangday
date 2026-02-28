@@ -54,12 +54,9 @@
                     @endforeach
                 </select>
             </div>
-
-           
-
+            
             @if($dragTeacherId && $dragSubjectId)
                 @php
-                    // Xử lý an toàn dữ liệu Livewire để không bị lỗi mảng
                     $teacherData = collect($teachers)->firstWhere('id', (int)$dragTeacherId);
                     $subjectData = collect($subjects)->firstWhere('id', (int)$dragSubjectId);
                     
@@ -81,6 +78,13 @@
                     Chọn Giáo viên & Môn học <br>để tạo thẻ xếp lịch
                 </div>
             @endif
+
+            <div class="mt-8 pt-6 border-t border-gray-100">
+                <button wire:click="saveTimetable" type="button" style="background-color: #10b981 !important;" class="w-full text-white font-bold py-4 rounded-xl shadow-lg hover:opacity-90 transition-all flex items-center justify-center gap-2 uppercase tracking-widest text-sm">
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7H5a2 2 0 00-2 2v9a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-3m-1 4l-3 3m0 0l-3-3m3 3V4"></path></svg>
+                    Lưu Thời Khóa Biểu
+                </button>
+            </div>
         </div>
 
         <div class="w-full lg:w-[72%] bg-white p-6 rounded-2xl shadow-md border border-gray-100 overflow-hidden">
@@ -105,7 +109,7 @@
                             @for($period = 1; $period <= 10; $period++)
                                 @if($period == 6)
                                     <tr>
-                                        <td colspan="7" class="border border-gray-200 bg-gray-100 text-gray-500 font-bold py-3 tracking-[0.3em] shadow-inner text-sm">
+                                        <td colspan="7" class="border border-gray-200 bg-gray-100 text-gray-500 font-bold py-3 tracking-[0.3em] shadow-inner text-sm uppercase">
                                             NGHỈ TRƯA
                                         </td>
                                     </tr>
@@ -121,11 +125,9 @@
                                         <td class="border-r border-gray-200 p-1.5 h-28 align-top bg-white relative group/cell">
                                             @if(isset($matrix[$day][$period]))
                                                 <div class="bg-blue-50 border-l-4 border-blue-500 text-left p-3 rounded-r-lg shadow-sm h-full flex flex-col justify-start relative group hover:bg-blue-100 transition duration-200">
-                                                    
                                                     <button wire:click="deleteSchedule({{ $matrix[$day][$period]['id'] }})" class="absolute top-1 right-1 bg-white text-red-500 hover:bg-red-500 hover:text-white rounded-md w-6 h-6 flex items-center justify-center text-lg font-bold shadow-sm opacity-0 group-hover:opacity-100 transition z-10" title="Xóa tiết này">
                                                         &times;
                                                     </button>
-                                                    
                                                     <div class="font-bold text-sm text-gray-800 leading-tight break-words pr-4">
                                                         {{ $matrix[$day][$period]['subject'] }}
                                                     </div>
