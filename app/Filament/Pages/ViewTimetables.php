@@ -8,40 +8,39 @@ use App\Models\Schedule;
 
 class ViewTimetables extends Page
 {
-    protected static ?string $navigationIcon = 'heroicon-o-table-cells';
+    protected static ?string $navigationIcon = 'heroicon-o-printer';
     protected static ?string $navigationLabel = 'Thời Khóa Biểu';
-    protected static ?string $title = 'Thời Khóa Biểu Toàn Trường';
+    protected static ?string $title = 'Hệ Thống Thời Khóa Biểu';
     protected static string $view = 'filament.pages.view-timetables';
 
-    public $selectedGrade = null;
+    public $selectedGrade = '10';
     public $timetables = [];
 
-    public function mount()
-    {
-        $this->selectedGrade = '10'; // Mặc định hiện khối 10
-        $this->loadTimetables();
-    }
+    public function mount() { $this->loadData(); }
+    public function updatedSelectedGrade() { $this->loadData(); }
 
-    public function updatedSelectedGrade()
+    public function loadData()
     {
-        $this->loadTimetables();
-    }
-
-    public function loadTimetables()
-    {
-        $classes = ClassRoom::where('grade', $this->selectedGrade)->get();
+        // Lấy lớp kèm theo thông tin giáo viên chủ nhiệm
+        $classes = ClassRoom::with('teacher')->where('grade', $this->selectedGrade)->get();
         $this->timetables = [];
 
         foreach ($classes as $class) {
             $schedules = Schedule::with(['teacher', 'subject'])->where('class_id', $class->id)->get();
-            $matrix = [];
-            foreach ($schedules as $sch) {
-                $matrix[$sch->day][$sch->period] = [
-                    'sub' => $sch->subject->name,
-                    'tea' => $sch->teacher->short_code ?? $sch->teacher->name
+            $data = [];
+            foreach ($schedules as $s) {
+                $data[$s->day][$s->period] = [
+                    'sub' => $s->subject->name,
+                    'tea' => $s->teacher->short_code ?? $s->teacher->name
                 ];
             }
-            $this->timetables[] = ['name' => $class->name, 'data' => $matrix];
+
+            $this->timetables[] = [
+                'id' => $class->id,
+                'name' => $class->name,
+                'gvcn' => $class->teacher ? $class->teacher->name : 'Chưa có',
+                'data' => $data
+            ];
         }
     }
 }
