@@ -18,26 +18,27 @@ class TeacherResource extends Resource
     protected static ?string $navigationLabel = 'Giáo viên';
     protected static ?string $modelLabel = 'Giáo viên';
 
-    public static function form(Form $form): Form
-    {
-        return $form
-            ->schema([
-                Forms\Components\TextInput::make('name')
-                    ->label('Họ và tên Giáo viên')
-                    ->required()
-                    ->maxLength(255),
-                    
-                Forms\Components\TextInput::make('short_code')
-                    ->label('Tên viết tắt (VD: NVA)')
-                    ->maxLength(255),
-                    
-                Forms\Components\TextInput::make('lookup_code')
-                    ->label('Mã tra cứu (Lookup Code)')
-                    ->required()
-                    ->unique(ignoreRecord: true)
-                    ->helperText('Mã dùng để giáo viên tra cứu lịch dạy. (VD: GV_A)')
-                    ->maxLength(255),
-            ]);
+    public static function form(Form $form): Form {
+        return $form->schema([
+            Forms\Components\Section::make('Thông tin định danh')->schema([
+                Forms\Components\TextInput::make('name')->label('Họ tên')->required(),
+                Forms\Components\TextInput::make('short_code')->label('Viết tắt'),
+                Forms\Components\TextInput::make('lookup_code')->label('Mã tra cứu')->required()->unique(ignoreRecord: true),
+            ])->columns(3),
+    
+            Forms\Components\Section::make('Phân công chuyên môn')->schema([
+                Forms\Components\Select::make('subjects')
+                    ->label('Môn giảng dạy (Chọn nhiều)')
+                    ->multiple() // Quan trọng: Cho phép chọn nhiều môn
+                    ->relationship('subjects', 'name')
+                    ->preload()->required(),
+                Forms\Components\TextInput::make('quota')
+                    ->label('Định mức tiết/tuần')->numeric()->default(17)->required(),
+                Forms\Components\Select::make('homeroom_class_id')
+                    ->label('Lớp chủ nhiệm')
+                    ->relationship('homeroomClass', 'name')->preload(),
+            ])->columns(3),
+        ]);
     }
 
     public static function table(Table $table): Table

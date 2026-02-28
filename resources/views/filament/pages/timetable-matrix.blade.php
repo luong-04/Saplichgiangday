@@ -33,17 +33,6 @@
                 <span class="bg-blue-600 text-white w-6 h-6 rounded-full flex items-center justify-center text-sm">2</span> 
                 Tạo Thẻ Môn Học
             </h3>
-            
-            <div class="mb-4">
-                <label class="block text-sm font-semibold text-gray-600 mb-2">Giáo viên phụ trách</label>
-                <select wire:model.live="dragTeacherId" class="w-full border-gray-300 rounded-xl shadow-sm p-3 border focus:ring-2 focus:ring-blue-500 transition">
-                    <option value="">-- Chọn Giáo viên --</option>
-                    @foreach($teachers as $teacher)
-                        <option value="{{ $teacher->id }}">{{ $teacher->name }}</option>
-                    @endforeach
-                </select>
-            </div>
-
             <div class="mb-6">
                 <label class="block text-sm font-semibold text-gray-600 mb-2">Môn học</label>
                 <select wire:model.live="dragSubjectId" class="w-full border-gray-300 rounded-xl shadow-sm p-3 border focus:ring-2 focus:ring-blue-500 transition">
@@ -53,6 +42,20 @@
                     @endforeach
                 </select>
             </div>
+            
+            <div class="mb-4">
+                <label class="block text-sm font-semibold text-gray-600 mb-2">Giáo viên dạy môn này</label>
+                <select wire:model.live="dragTeacherId" class="w-full border-gray-300 rounded-xl p-3 border">
+                    <option value="">-- Chọn Giáo viên --</option>
+                    @foreach($filteredTeachers as $teacher)
+                        <option value="{{ $teacher->id }}">
+                            {{ $teacher->name }} (Còn {{ $teacher->remaining_quota }} tiết)
+                        </option>
+                    @endforeach
+                </select>
+            </div>
+
+           
 
             @if($dragTeacherId && $dragSubjectId)
                 @php

@@ -115,4 +115,30 @@ class TimetableMatrix extends Page
             ->warning()
             ->send();
     }
+    // Thêm biến chứa danh sách giáo viên đã lọc
+    public $filteredTeachers = [];
+
+    // Hàm này tự động chạy khi bạn chọn một Môn học ở cột trái
+    public function updatedDragSubjectId($value) {
+        $this->dragTeacherId = null; // Reset giáo viên khi đổi môn
+        if (!$value) { $this->filteredTeachers = []; return; }
+
+        $subject = Subject::find($value);
+        $name = mb_strtolower($subject->name);
+
+        // 1. Sinh hoạt lớp: Chỉ hiện GV chủ nhiệm lớp này
+        if (str_contains($name, 'sinh hoạt')) {
+            $this->filteredTeachers = Teacher::where('homeroom_class_id', $this->selectedClass)->get();
+        } 
+        // 2. Chào cờ: Hiện tất cả giáo viên
+        else if (str_contains($name, 'chào cờ')) {
+            $this->filteredTeachers = Teacher::all();
+        } 
+        // 3. Môn bình thường: Tìm giáo viên dạy môn đó (quan hệ nhiều-nhiều)
+        else {
+            $this->filteredTeachers = Teacher::whereHas('subjects', function($q) use ($value) {
+                $q->where('subjects.id', $value);
+            })->get();
+        }
+    }
 }
