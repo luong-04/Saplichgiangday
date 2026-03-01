@@ -6,6 +6,8 @@ use Illuminate\Http\Request;
 use App\Models\Teacher;
 use App\Models\ClassRoom;
 use App\Models\Schedule;
+use Maatwebsite\Excel\Facades\Excel;
+use App\Exports\TimetableExport;
 
 class SearchController extends Controller
 {
@@ -18,22 +20,20 @@ class SearchController extends Controller
     // Xử lý khi người dùng nhập mã và bấm Tìm kiếm
     public function search(Request $request)
     {
-        // Kiểm tra đầu vào
         $request->validate([
             'lookup_code' => 'required|string|max:255',
         ]);
 
         $code = $request->lookup_code;
-        $schedules = collect(); 
+        $schedules = collect();
         $targetName = '';
         $type = '';
+        $gvcn = '';
 
-        // 1. Kiểm tra xem mã này thuộc về Giáo viên hay Lớp học [cite: 28]
         $teacher = Teacher::where('lookup_code', $code)->first();
         $classRoom = ClassRoom::where('lookup_code', $code)->first();
 
         if ($teacher) {
-            // Lấy lịch của Giáo viên
             $schedules = Schedule::with(['classRoom', 'subject'])
                 ->where('teacher_id', $teacher->id)
                 ->orderBy('day')
@@ -41,8 +41,8 @@ class SearchController extends Controller
                 ->get();
             $targetName = $teacher->name;
             $type = 'Giáo viên';
-        } elseif ($classRoom) {
-            // Lấy lịch của Lớp học
+        }
+        elseif ($classRoom) {
             $schedules = Schedule::with(['teacher', 'subject'])
                 ->where('class_id', $classRoom->id)
                 ->orderBy('day')
@@ -50,12 +50,55 @@ class SearchController extends Controller
                 ->get();
             $targetName = $classRoom->name;
             $type = 'Lớp';
-        } else {
-            // Kịch bản TC-06: Nhập mã không tồn tại [cite: 123]
+            // Lấy GVCN
+            $gvcnTeacher = Teacher::where('homeroom_class_id', $classRoom->id)->first();
+            $gvcn = $gvcnTeacher ? $gvcnTeacher->name : 'Chưa có';
+        }
+        else {
             return back()->with('error', 'Mã không hợp lệ hoặc không tìm thấy dữ liệu.');
         }
 
-        // Trả kết quả về giao diện
-        return view('search', compact('schedules', 'targetName', 'code', 'type'));
+        // Chuyển đổi sang dạng grid [day][period]
+        $grid = [];
+        foreach ($schedules as $s) {
+            $grid[$s->day][$s->period] = [
+                'subject' => $s->subject->name,
+                'extra' => $type === 'Giáo viên'
+                ? ($s->classRoom->name ?? '')
+                : ($s->teacher->short_code ?? $s->teacher->name ?? ''),
+            ];
+        }
+
+        return view('search', compact('schedules', 'targetName', 'code', 'type', 'grid', 'gvcn'));
+    }
+
+    // Xuất Excel từ trang tra cứu
+    public function exportExcel($code)
+    {
+        $classRoom = ClassRoom::where('lookup_code', $code)->first();
+
+        if (!$classRoom) {
+            return back()->with('error', 'Không tìm thấy lớp để xuất Excel.');
+        }
+
+        $schedules = Schedule::with(['teacher', 'subject'])->where('class_id', $classRoom->id)->get();
+        $data = [];
+        foreach ($schedules as $s) {
+            $data[$s->day][$s->period] = [
+                'sub' => $s->subject->name,
+                'tea' => $s->teacher->short_code ?? $s->teacher->name,
+            ];
+        }
+
+        $gvcnTeacher = Teacher::where('homeroom_class_id', $classRoom->id)->first();
+        $tkb = [
+            'id' => $classRoom->id,
+            'name' => $classRoom->name,
+            'gvcn' => $gvcnTeacher ? $gvcnTeacher->name : 'Chưa có',
+            'data' => $data,
+        ];
+
+        $fileName = 'TKB_Lop_' . $classRoom->name . '.xlsx';
+        return Excel::download(new TimetableExport($tkb), $fileName);
     }
 }

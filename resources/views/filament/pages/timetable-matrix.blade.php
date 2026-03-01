@@ -1,154 +1,360 @@
 <x-filament-panels::page>
-    <div class="flex flex-col lg:flex-row gap-6 items-start">
-        
-        <div class="w-full lg:w-[28%] bg-white p-6 rounded-2xl shadow-md border border-gray-100 sticky top-6">
-            <h3 class="font-bold text-lg mb-4 text-gray-800 flex items-center gap-2">
-                <span class="bg-blue-600 text-white w-6 h-6 rounded-full flex items-center justify-center text-sm">1</span> 
+
+<style>
+    /* ====== Bố cục chính ====== */
+    .matrix-layout { display: flex; flex-direction: column; gap: 1.5rem; }
+    
+    @media (min-width: 1024px) {
+        .matrix-layout { flex-direction: row; align-items: flex-start; }
+        .matrix-left { width: 30%; position: sticky; top: 1.5rem; }
+        .matrix-right { width: 70%; }
+    }
+
+    /* ====== Card chung ====== */
+    .matrix-card {
+        background: linear-gradient(145deg, rgba(255,255,255,0.94), rgba(240,249,255,0.9));
+        backdrop-filter: blur(16px);
+        border: 1px solid rgba(186,230,253,0.5);
+        border-radius: 1.25rem;
+        box-shadow: 0 6px 24px rgba(14,165,233,0.06);
+        padding: 1.75rem;
+        transition: all 0.3s ease;
+    }
+    .matrix-card:hover { box-shadow: 0 10px 36px rgba(14,165,233,0.1); }
+
+    /* ====== Step heading ====== */
+    .step-heading {
+        display: flex;
+        align-items: center;
+        gap: 0.75rem;
+        font-size: 1.1rem;
+        font-weight: 900;
+        color: #0c4a6e;
+        margin-bottom: 1.25rem;
+    }
+    .step-number {
+        width: 2rem; height: 2rem;
+        background: linear-gradient(135deg, #2563eb, #0ea5e9);
+        color: white;
+        border-radius: 0.6rem;
+        display: flex; align-items: center; justify-content: center;
+        font-size: 0.85rem; font-weight: 900;
+        box-shadow: 0 4px 12px rgba(37,99,235,0.3);
+    }
+
+    /* ====== Form elements ====== */
+    .form-label {
+        display: block;
+        font-size: 0.85rem;
+        font-weight: 700;
+        color: #64748b;
+        text-transform: uppercase;
+        letter-spacing: 0.08em;
+        margin-bottom: 0.5rem;
+    }
+    /* FIX: Ẩn arrow mặc định, dùng 1 arrow SVG duy nhất */
+    .form-select {
+        width: 100%;
+        border: 1px solid rgba(186,230,253,0.6);
+        border-radius: 0.75rem;
+        padding: 0.75rem 2.5rem 0.75rem 1rem;
+        font-size: 0.95rem;
+        font-weight: 600;
+        background-color: white;
+        background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 20 20'%3e%3cpath stroke='%236b7280' stroke-linecap='round' stroke-linejoin='round' stroke-width='1.5' d='M6 8l4 4 4-4'/%3e%3c/svg%3e");
+        background-position: right 0.75rem center;
+        background-repeat: no-repeat;
+        background-size: 1.25em 1.25em;
+        -webkit-appearance: none;
+        -moz-appearance: none;
+        appearance: none;
+        transition: all 0.3s ease;
+        box-shadow: 0 2px 8px rgba(0,0,0,0.04);
+        color: #334155;
+    }
+    .form-select:focus {
+        border-color: #38bdf8;
+        box-shadow: 0 0 0 3px rgba(56,189,248,0.2), 0 4px 12px rgba(14,165,233,0.1);
+        outline: none;
+    }
+
+    /* ====== Khu vực kéo thả thẻ ====== */
+    .drag-zone {
+        background: linear-gradient(135deg, rgba(240,249,255,0.6), rgba(236,253,245,0.4));
+        border: 2px dashed rgba(186,230,253,0.5);
+        border-radius: 1rem;
+        padding: 1rem;
+        min-height: 200px;
+        transition: all 0.3s ease;
+    }
+    .drag-zone.empty {
+        display: flex; flex-direction: column; align-items: center; justify-content: center;
+        color: #94a3b8;
+    }
+    .drag-zone-icon { font-size: 2.5rem; margin-bottom: 0.75rem; opacity: 0.4; }
+    .drag-zone-text { font-size: 0.9rem; font-weight: 600; text-align: center; }
+
+    .drag-card {
+        background: linear-gradient(135deg, #eff6ff, #e0f2fe);
+        border: 1px solid rgba(186,230,253,0.6);
+        border-radius: 0.75rem;
+        padding: 0.75rem 1rem;
+        margin-bottom: 0.5rem;
+        cursor: grab;
+        transition: all 0.3s ease;
+        font-weight: 700;
+        font-size: 0.9rem;
+        color: #0c4a6e;
+    }
+    .drag-card:hover {
+        background: linear-gradient(135deg, #dbeafe, #bae6fd);
+        box-shadow: 0 4px 14px rgba(59,130,246,0.15);
+        transform: translateY(-1px);
+    }
+    .drag-card:active { cursor: grabbing; transform: scale(0.97); }
+    .drag-card-sub { font-size: 0.75rem; color: #2563eb; font-weight: 600; margin-top: 2px; }
+
+    /* ====== Bảng ma trận ====== */
+    .matrix-table { width: 100%; border-collapse: separate; border-spacing: 0; }
+    .matrix-table thead th {
+        background: linear-gradient(135deg, #eff6ff, #e0f2fe);
+        color: #1e40af;
+        font-weight: 800;
+        font-size: 0.85rem;
+        text-transform: uppercase;
+        letter-spacing: 0.05em;
+        padding: 0.85rem 0.5rem;
+        text-align: center;
+        border-bottom: 2px solid rgba(186,230,253,0.5);
+        position: sticky;
+        top: 0;
+        z-index: 10;
+    }
+    .matrix-table tbody td {
+        padding: 0.3rem;
+        border-bottom: 1px solid rgba(241,245,249,0.8);
+        border-right: 1px solid rgba(241,245,249,0.6);
+        height: 4.5rem;
+        text-align: center;
+        vertical-align: middle;
+        transition: background 0.15s ease;
+    }
+
+    .cell-period-m {
+        font-weight: 900; color: #bae6fd; font-size: 1.3rem; font-style: italic;
+        background: rgba(248,250,252,0.5) !important; width: 3rem;
+    }
+
+    /* Cell có nội dung */
+    .cell-filled {
+        background: linear-gradient(135deg, #eff6ff, #dbeafe);
+        border-left: 3px solid #3b82f6;
+        border-radius: 0.5rem;
+        padding: 0.4rem 0.5rem;
+        text-align: left;
+        display: flex; flex-direction: column; justify-content: center; align-items: flex-start;
+        height: 100%;
+        position: relative;
+    }
+    .cell-filled-sub { font-weight: 800; font-size: 0.78rem; color: #0c4a6e; text-transform: uppercase; }
+    .cell-filled-tea { font-size: 0.68rem; color: #2563eb; font-weight: 700; font-style: italic; margin-top: 1px; }
+    .cell-delete {
+        position: absolute; top: 2px; right: 2px;
+        width: 1.1rem; height: 1.1rem;
+        border-radius: 0.35rem;
+        background: rgba(239,68,68,0.1);
+        color: #ef4444;
+        display: flex; align-items: center; justify-content: center;
+        cursor: pointer;
+        opacity: 0;
+        transition: opacity 0.2s;
+        font-size: 0.65rem;
+        font-weight: 900;
+        border: none;
+    }
+    .cell-filled:hover .cell-delete { opacity: 1; }
+    .cell-delete:hover { background: #ef4444; color: white; }
+
+    /* Cell trống cho drop */
+    .cell-empty {
+        border: 2px dashed transparent;
+        border-radius: 0.5rem;
+        height: 100%;
+        display: flex; align-items: center; justify-content: center;
+        transition: all 0.2s ease;
+        cursor: pointer;
+        min-height: 3.5rem;
+    }
+    .cell-empty:hover { border-color: rgba(59,130,246,0.3); background: rgba(240,249,255,0.3); }
+    .cell-empty.dragover { border-color: #3b82f6; background: rgba(224,242,254,0.6); }
+
+    .lunch-break-m {
+        padding: 0.4rem !important; font-size: 0.7rem; font-weight: 900; color: #cbd5e1;
+        text-transform: uppercase; letter-spacing: 0.25em; font-style: italic;
+        background: linear-gradient(90deg, #f8fafc, #f0f9ff) !important;
+    }
+
+    /* ====== Nút Lưu ====== */
+    .btn-save {
+        width: 100%;
+        padding: 0.85rem;
+        border: none;
+        border-radius: 0.875rem;
+        font-size: 1rem;
+        font-weight: 800;
+        text-transform: uppercase;
+        letter-spacing: 0.05em;
+        cursor: pointer;
+        background: linear-gradient(135deg, #2563eb, #0ea5e9);
+        color: white;
+        box-shadow: 0 6px 20px rgba(37,99,235,0.3);
+        transition: all 0.3s ease;
+        display: flex; align-items: center; justify-content: center; gap: 0.5rem;
+    }
+    .btn-save:hover { box-shadow: 0 10px 30px rgba(37,99,235,0.4); transform: translateY(-2px); }
+
+    /* Divider */
+    .section-divider { height: 1px; background: linear-gradient(90deg, transparent, rgba(186,230,253,0.5), transparent); margin: 1.5rem 0; }
+</style>
+
+<div class="matrix-layout">
+    
+    {{-- ======= CỘT TRÁI: ĐIỀU KHIỂN ======= --}}
+    <div class="matrix-left">
+        <div class="matrix-card">
+            
+            {{-- Bước 1: Chọn Lớp --}}
+            <div class="step-heading">
+                <span class="step-number">1</span>
                 Chọn Lớp Xếp Lịch
-            </h3>
+            </div>
             
-            <div class="mb-4">
-                <label class="block text-sm font-semibold text-gray-600 mb-2">Khối</label>
-                <select wire:model.live="selectedGrade" class="w-full border-gray-300 rounded-xl shadow-sm p-3 border focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition">
-                    <option value="">-- Chọn Khối --</option>
+            <div style="margin-bottom:1rem;">
+                <label class="form-label">Khối</label>
+                <select wire:model.live="selectedGrade" class="form-select">
+                    <option value="">── Chọn Khối ──</option>
                     @foreach($grades as $grade)
-                        <option value="{{ $grade }}">{{ $grade }}</option>
+                        <option value="{{ $grade }}">Khối {{ $grade }}</option>
                     @endforeach
                 </select>
             </div>
             
-            <div class="mb-6">
-                <label class="block text-sm font-semibold text-gray-600 mb-2">Lớp học</label>
-                <select wire:model.live="selectedClass" class="w-full border-gray-300 rounded-xl shadow-sm p-3 border focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition" {{ !$selectedGrade ? 'disabled' : '' }}>
-                    <option value="">-- Chọn Lớp --</option>
-                    @foreach($classes as $cls)
-                        <option value="{{ $cls->id }}">{{ $cls->name }}</option>
+            <div style="margin-bottom:1.5rem;">
+                <label class="form-label">Lớp học</label>
+                <select wire:model.live="selectedClass" class="form-select">
+                    <option value="">── Chọn Lớp ──</option>
+                    @foreach($classes as $cl)
+                        <option value="{{ $cl->id }}">{{ $cl->name }}</option>
                     @endforeach
                 </select>
             </div>
 
-            <hr class="mb-6 border-gray-200">
+            <div class="section-divider"></div>
 
-            <h3 class="font-bold text-lg mb-4 text-gray-800 flex items-center gap-2">
-                <span class="bg-blue-600 text-white w-6 h-6 rounded-full flex items-center justify-center text-sm">2</span> 
+            {{-- Bước 2: Tạo Thẻ Môn Học --}}
+            <div class="step-heading">
+                <span class="step-number">2</span>
                 Tạo Thẻ Môn Học
-            </h3>
-            <div class="mb-6">
-                <label class="block text-sm font-semibold text-gray-600 mb-2">Môn học</label>
-                <select wire:model.live="dragSubjectId" class="w-full border-gray-300 rounded-xl shadow-sm p-3 border focus:ring-2 focus:ring-blue-500 transition">
-                    <option value="">-- Chọn Môn --</option>
-                    @foreach($subjects as $subject)
-                        <option value="{{ $subject->id }}">{{ $subject->name }}</option>
+            </div>
+            
+            <div style="margin-bottom:1rem;">
+                <label class="form-label">Môn học</label>
+                <select wire:model.live="dragSubjectId" class="form-select">
+                    <option value="">── Chọn Môn ──</option>
+                    @foreach($subjects as $sub)
+                        <option value="{{ $sub->id }}">{{ $sub->name }}</option>
                     @endforeach
                 </select>
             </div>
             
-            <div class="mb-4">
-                <label class="block text-sm font-semibold text-gray-600 mb-2">Giáo viên dạy môn này</label>
-                <select wire:model.live="dragTeacherId" class="w-full border-gray-300 rounded-xl p-3 border">
-                    <option value="">-- Chọn Giáo viên --</option>
-                    @foreach($filteredTeachers as $teacher)
-                        <option value="{{ $teacher->id }}">
-                            {{ $teacher->name }} (Còn {{ $teacher->remaining_quota }} tiết)
-                        </option>
+            <div style="margin-bottom:1.5rem;">
+                <label class="form-label">Giáo viên dạy môn này</label>
+                <select wire:model.live="dragTeacherId" class="form-select">
+                    <option value="">── Chọn Giáo viên ──</option>
+                    @foreach($filteredTeachers as $t)
+                        <option value="{{ $t->id }}">{{ $t->name }} {{ $t->short_code ? '('.$t->short_code.')' : '' }}</option>
                     @endforeach
                 </select>
             </div>
+
+            {{-- Khu vực thẻ kéo --}}
+            <div class="drag-zone {{ ($dragTeacherId && $dragSubjectId) ? '' : 'empty' }}">
+                @if($dragTeacherId && $dragSubjectId)
+                    @php
+                        $subName = $subjects->firstWhere('id', $dragSubjectId)?->name ?? '';
+                        $teaObj = $filteredTeachers->firstWhere('id', $dragTeacherId);
+                        $teaName = $teaObj ? ($teaObj->short_code ?: $teaObj->name) : '';
+                    @endphp
+                    <div class="drag-card" id="drag-card" draggable="true"
+                         ondragstart="event.dataTransfer.setData('text/plain', '{{ $dragTeacherId }}_{{ $dragSubjectId }}')">
+                        <div>📚 {{ $subName }}</div>
+                        <div class="drag-card-sub">👨‍🏫 {{ $teaName }}</div>
+                    </div>
+                    <p style="font-size:0.75rem; color:#94a3b8; text-align:center; margin-top:0.75rem; font-weight:600;">
+                        Kéo thẻ này vào ô trống trong bảng bên phải
+                    </p>
+                @else
+                    <div class="drag-zone-icon">↕️</div>
+                    <div class="drag-zone-text">Chọn Giáo viên & Môn học<br>để tạo thẻ xếp lịch</div>
+                @endif
+            </div>
+
+            <div class="section-divider"></div>
             
-            @if($dragTeacherId && $dragSubjectId)
-                @php
-                    $teacherData = collect($teachers)->firstWhere('id', (int)$dragTeacherId);
-                    $subjectData = collect($subjects)->firstWhere('id', (int)$dragSubjectId);
-                    
-                    $tName = $teacherData ? (is_array($teacherData) ? $teacherData['name'] : $teacherData->name) : 'Giáo viên';
-                    $sName = $subjectData ? (is_array($subjectData) ? $subjectData['name'] : $subjectData->name) : 'Môn học';
-                @endphp
-                <div 
-                    draggable="true" 
-                    ondragstart="event.dataTransfer.setData('text/plain', JSON.stringify({ teacher_id: {{ $dragTeacherId }}, subject_id: {{ $dragSubjectId }} }))"
-                    class="p-5 rounded-xl shadow-lg cursor-grab active:cursor-grabbing text-center hover:scale-[1.03] transition-transform duration-200"
-                    style="background: linear-gradient(to bottom right, #2563eb, #1e40af); color: #ffffff; border: 1px solid #93c5fd;"
-                >
-                    <div style="color: #bfdbfe; font-size: 0.75rem; text-transform: uppercase; letter-spacing: 0.1em; font-weight: 600; margin-bottom: 0.5rem;">Cầm & Kéo thẻ này</div>
-                    <div style="font-weight: 700; font-size: 1.25rem; line-height: 1.2; margin-bottom: 0.25rem;">{{ $sName }}</div>
-                    <div style="font-size: 0.875rem; font-weight: 500; background-color: rgba(30, 58, 138, 0.5); padding: 0.25rem 0.6rem; border-radius: 0.5rem; display: inline-block;">{{ $tName }}</div>
+            {{-- Nút Lưu --}}
+            <button wire:click="saveTimetable" class="btn-save">
+                <svg xmlns="http://www.w3.org/2000/svg" class="w-5 h-5" viewBox="0 0 20 20" fill="currentColor">
+                    <path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"/>
+                </svg>
+                Lưu Thời Khóa Biểu
+            </button>
+        </div>
+    </div>
+
+    {{-- ======= CỘT PHẢI: BẢNG MA TRẬN ======= --}}
+    <div class="matrix-right">
+        <div class="matrix-card" style="padding: 1.25rem;">
+            @if(!$selectedClass)
+                <div style="text-align:center; padding:4rem 2rem; color:#94a3b8;">
+                    <div style="font-size:3.5rem; margin-bottom:1rem; opacity:0.3;">📅</div>
+                    <div style="font-size:1.2rem; font-weight:900; color:#64748b; margin-bottom:0.5rem;">Bảng thời khóa biểu đang trống</div>
+                    <div style="font-size:0.9rem; font-weight:600;">Vui lòng chọn <strong style="color:#6366f1;">Khối</strong> và <strong style="color:#6366f1;">Lớp</strong> ở cột bên trái để bắt đầu xếp lịch.</div>
                 </div>
             @else
-                <div class="bg-gray-50 p-6 rounded-xl border-2 border-dashed border-gray-300 text-center text-gray-400 text-sm font-medium">
-                    Chọn Giáo viên & Môn học <br>để tạo thẻ xếp lịch
-                </div>
-            @endif
-
-            <div class="mt-8 pt-6 border-t border-gray-100">
-                <button wire:click="saveTimetable" type="button" style="background-color: #10b981 !important;" class="w-full text-white font-bold py-4 rounded-xl shadow-lg hover:opacity-90 transition-all flex items-center justify-center gap-2 uppercase tracking-widest text-sm">
-                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7H5a2 2 0 00-2 2v9a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-3m-1 4l-3 3m0 0l-3-3m3 3V4"></path></svg>
-                    Lưu Thời Khóa Biểu
-                </button>
-            </div>
-        </div>
-
-        <div class="w-full lg:w-[72%] bg-white p-6 rounded-2xl shadow-md border border-gray-100 overflow-hidden">
-            @if($selectedClass)
-                <div class="flex justify-between items-center mb-4">
-                    <h2 class="text-xl font-bold text-gray-800">
-                        Thời khóa biểu lớp: <span class="text-blue-600">{{ collect($classes)->firstWhere('id', $selectedClass)?->name }}</span>
-                    </h2>
-                </div>
-
-                <div class="overflow-x-auto pb-4">
-                    <table class="w-full text-center border-collapse border border-gray-200 min-w-[900px]">
+                <div style="overflow-x:auto; border-radius:0.75rem; border:1px solid rgba(199,210,254,0.4);">
+                    <table class="matrix-table">
                         <thead>
-                            <tr class="bg-blue-50 text-blue-900 border-b-2 border-blue-200">
-                                <th class="border-r border-gray-200 p-3 w-[10%] font-bold uppercase text-sm">Tiết</th>
-                                @for($day = 2; $day <= 7; $day++)
-                                    <th class="border-r border-gray-200 p-3 w-[15%] font-bold uppercase text-sm">Thứ {{ $day }}</th>
-                                @endfor
+                            <tr>
+                                <th style="width:3rem;">Tiết</th>
+                                @for($d=2; $d<=7; $d++) <th>Thứ {{ $d }}</th> @endfor
                             </tr>
                         </thead>
                         <tbody>
-                            @for($period = 1; $period <= 10; $period++)
-                                @if($period == 6)
-                                    <tr>
-                                        <td colspan="7" class="border border-gray-200 bg-gray-100 text-gray-500 font-bold py-3 tracking-[0.3em] shadow-inner text-sm uppercase">
-                                            NGHỈ TRƯA
-                                        </td>
-                                    </tr>
+                            @for($p=1; $p<=10; $p++)
+                                @if($p==6)
+                                    <tr><td colspan="7" class="lunch-break-m">── Nghỉ trưa ──</td></tr>
                                 @endif
-
-                                <tr class="border-b border-gray-200 hover:bg-gray-50 transition">
-                                    <td class="border-r border-gray-200 p-2 bg-gray-50/50">
-                                        <div class="font-bold text-lg text-gray-700">{{ $period }}</div>
-                                        <div class="text-[11px] font-medium text-gray-400 uppercase tracking-wider">{{ $period <= 5 ? 'Sáng' : 'Chiều' }}</div>
-                                    </td>
-                                    
-                                    @for($day = 2; $day <= 7; $day++)
-                                        <td class="border-r border-gray-200 p-1.5 h-28 align-top bg-white relative group/cell">
-                                            @if(isset($matrix[$day][$period]))
-                                                <div class="bg-blue-50 border-l-4 border-blue-500 text-left p-3 rounded-r-lg shadow-sm h-full flex flex-col justify-start relative group hover:bg-blue-100 transition duration-200">
-                                                    <button wire:click="deleteSchedule({{ $matrix[$day][$period]['id'] }})" class="absolute top-1 right-1 bg-white text-red-500 hover:bg-red-500 hover:text-white rounded-md w-6 h-6 flex items-center justify-center text-lg font-bold shadow-sm opacity-0 group-hover:opacity-100 transition z-10" title="Xóa tiết này">
-                                                        &times;
-                                                    </button>
-                                                    <div class="font-bold text-sm text-gray-800 leading-tight break-words pr-4">
-                                                        {{ $matrix[$day][$period]['subject'] }}
-                                                    </div>
-                                                    <div class="text-xs font-semibold text-blue-600 mt-1.5 break-words">
-                                                        {{ $matrix[$day][$period]['teacher'] }}
-                                                    </div>
+                                <tr>
+                                    <td class="cell-period-m">{{ $p }}</td>
+                                    @for($d=2; $d<=7; $d++)
+                                        <td>
+                                            @if(isset($matrix[$d][$p]))
+                                                <div class="cell-filled">
+                                                    <div class="cell-filled-sub">{{ $matrix[$d][$p]['subject'] }}</div>
+                                                    <div class="cell-filled-tea">{{ $matrix[$d][$p]['teacher'] }}</div>
+                                                    <button class="cell-delete" 
+                                                        wire:click="deleteSchedule({{ $matrix[$d][$p]['id'] }})" 
+                                                        title="Xóa tiết này">✕</button>
                                                 </div>
                                             @else
-                                                <div 
-                                                    ondragover="event.preventDefault(); this.classList.add('bg-blue-50', 'border-blue-400', 'scale-[0.98]');" 
-                                                    ondragleave="this.classList.remove('bg-blue-50', 'border-blue-400', 'scale-[0.98]');"
-                                                    ondrop="
-                                                        event.preventDefault();
-                                                        this.classList.remove('bg-blue-50', 'border-blue-400', 'scale-[0.98]');
-                                                        let data = JSON.parse(event.dataTransfer.getData('text/plain'));
-                                                        @this.assignSchedule({{ $day }}, {{ $period }}, data.teacher_id, data.subject_id);
-                                                    "
-                                                    class="h-full w-full flex flex-col items-center justify-center border-2 border-dashed border-gray-200 hover:border-blue-400 hover:bg-blue-50 rounded-lg cursor-pointer text-gray-400 transition-all duration-200"
-                                                >
-                                                    <svg class="w-5 h-5 mb-1 opacity-50" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"></path></svg>
-                                                    <span class="text-[11px] font-medium tracking-wide">Kéo thả</span>
+                                                <div class="cell-empty"
+                                                     ondragover="event.preventDefault(); this.classList.add('dragover');"
+                                                     ondragleave="this.classList.remove('dragover');"
+                                                     ondrop="
+                                                         this.classList.remove('dragover');
+                                                         var data = event.dataTransfer.getData('text/plain').split('_');
+                                                         @this.call('assignSchedule', {{ $d }}, {{ $p }}, data[0], data[1]);
+                                                     ">
                                                 </div>
                                             @endif
                                         </td>
@@ -158,13 +364,9 @@
                         </tbody>
                     </table>
                 </div>
-            @else
-                <div class="flex flex-col items-center justify-center h-96 text-gray-400 border-2 border-dashed border-gray-200 rounded-2xl bg-gray-50/50">
-                    <svg class="w-16 h-16 mb-4 text-gray-300" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"></path></svg>
-                    <p class="text-lg font-medium text-gray-500">Bảng thời khóa biểu đang trống</p>
-                    <p class="text-sm mt-1">Vui lòng chọn Khối và Lớp ở cột bên trái để bắt đầu xếp lịch.</p>
-                </div>
             @endif
         </div>
     </div>
+</div>
+
 </x-filament-panels::page>

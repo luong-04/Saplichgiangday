@@ -1,0 +1,445 @@
+/*
+ * ═══════════════════════════════════════════════════════
+ *  ADMIN THEME - THPT Nguyễn Bỉnh Khiêm
+ *  Nền xanh dương nhẹ (giống trang Tra cứu)
+ *  Glassmorphism + Shadow mượt mà
+ * ═══════════════════════════════════════════════════════
+ */
+
+/* ====== 1. BODY BACKGROUND — Giống trang tra cứu ====== */
+.fi-body {
+    background: linear-gradient(135deg, #e0f2fe 0%, #f0f9ff 25%, #ecfdf5 50%, #f0fdf4 75%, #eff6ff 100%) !important;
+    background-attachment: fixed !important;
+    min-height: 100vh;
+    font-size: 15px !important;
+}
+
+/* ====== 2. SIDEBAR ====== */
+.fi-sidebar {
+    background: linear-gradient(180deg, rgba(255, 255, 255, 0.88) 0%, rgba(240, 249, 255, 0.92) 100%) !important;
+    backdrop-filter: blur(24px) !important;
+    -webkit-backdrop-filter: blur(24px) !important;
+    border-right: 1px solid rgba(186, 230, 253, 0.5) !important;
+    box-shadow: 6px 0 40px rgba(14, 165, 233, 0.06) !important;
+}
+
+.fi-sidebar-header {
+    background: linear-gradient(135deg, rgba(14, 165, 233, 0.06), rgba(34, 197, 94, 0.04)) !important;
+    border-bottom: 1px solid rgba(186, 230, 253, 0.4) !important;
+    padding: 1rem !important;
+}
+
+.fi-sidebar-nav-groups {
+    padding: 0.75rem !important;
+}
+
+.fi-sidebar-item {
+    border-radius: 0.875rem !important;
+    margin-bottom: 4px !important;
+    padding: 0.6rem 0.8rem !important;
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1) !important;
+    font-size: 0.95rem !important;
+    font-weight: 600 !important;
+}
+
+.fi-sidebar-item:hover {
+    background: linear-gradient(135deg, rgba(59, 130, 246, 0.08), rgba(14, 165, 233, 0.06)) !important;
+    transform: translateX(4px);
+    box-shadow: 0 2px 12px rgba(59, 130, 246, 0.08) !important;
+}
+
+.fi-sidebar-item.fi-active {
+    background: linear-gradient(135deg, #2563eb, #0ea5e9) !important;
+    box-shadow: 0 6px 20px rgba(37, 99, 235, 0.35) !important;
+    color: white !important;
+}
+
+.fi-sidebar-item.fi-active * {
+    color: white !important;
+}
+
+/* ====== 3. TOPBAR ====== */
+.fi-topbar {
+    background: linear-gradient(135deg, rgba(255, 255, 255, 0.88), rgba(240, 249, 255, 0.92)) !important;
+    backdrop-filter: blur(24px) !important;
+    -webkit-backdrop-filter: blur(24px) !important;
+    border-bottom: 1px solid rgba(186, 230, 253, 0.4) !important;
+    box-shadow: 0 4px 30px rgba(14, 165, 233, 0.06) !important;
+}
+
+/* ====== 4. HEADINGS ====== */
+.fi-header-heading {
+    color: #0c4a6e !important;
+    font-weight: 900 !important;
+    font-size: 1.75rem !important;
+    letter-spacing: -0.03em;
+}
+
+.fi-header-subheading {
+    font-size: 1rem !important;
+    color: #0284c7 !important;
+}
+
+/* ====== 5. STAT CARDS ====== */
+.fi-wi-stats-overview-stat {
+    background: linear-gradient(145deg, rgba(255, 255, 255, 0.92), rgba(240, 249, 255, 0.88)) !important;
+    backdrop-filter: blur(20px) !important;
+    -webkit-backdrop-filter: blur(20px) !important;
+    border: 1px solid rgba(186, 230, 253, 0.5) !important;
+    border-radius: 1.25rem !important;
+    box-shadow: 0 8px 32px rgba(14, 165, 233, 0.08), 0 2px 8px rgba(0, 0, 0, 0.03) !important;
+    transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1) !important;
+    padding: 1.5rem !important;
+}
+
+.fi-wi-stats-overview-stat:hover {
+    box-shadow: 0 16px 48px rgba(14, 165, 233, 0.12), 0 4px 12px rgba(0, 0, 0, 0.05) !important;
+    transform: translateY(-4px) !important;
+}
+
+.fi-wi-stats-overview-stat-value {
+    font-size: 2.25rem !important;
+    font-weight: 900 !important;
+    color: #0c4a6e !important;
+}
+
+.fi-wi-stats-overview-stat-label {
+    font-size: 0.95rem !important;
+    font-weight: 700 !important;
+    text-transform: uppercase !important;
+    letter-spacing: 0.05em !important;
+    color: #64748b !important;
+}
+
+.fi-wi-stats-overview-stat-description {
+    font-size: 0.85rem !important;
+    font-weight: 600 !important;
+}
+
+/* ====== 6. CHART WIDGET ====== */
+.fi-wi-chart {
+    background: linear-gradient(145deg, rgba(255, 255, 255, 0.92), rgba(240, 249, 255, 0.88)) !important;
+    backdrop-filter: blur(20px) !important;
+    border: 1px solid rgba(186, 230, 253, 0.5) !important;
+    border-radius: 1.25rem !important;
+    box-shadow: 0 8px 32px rgba(14, 165, 233, 0.08) !important;
+    transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1) !important;
+}
+
+.fi-wi-chart:hover {
+    box-shadow: 0 16px 48px rgba(14, 165, 233, 0.12) !important;
+    transform: translateY(-3px) !important;
+}
+
+/* ====== 7. TABLES ====== */
+.fi-ta {
+    background: linear-gradient(145deg, rgba(255, 255, 255, 0.94), rgba(240, 249, 255, 0.9)) !important;
+    backdrop-filter: blur(20px) !important;
+    border: 1px solid rgba(186, 230, 253, 0.5) !important;
+    border-radius: 1.25rem !important;
+    box-shadow: 0 8px 32px rgba(14, 165, 233, 0.06) !important;
+    overflow: hidden !important;
+}
+
+.fi-ta-header-cell {
+    background: linear-gradient(135deg, #eff6ff, #e0f2fe) !important;
+    color: #1e40af !important;
+    font-weight: 800 !important;
+    text-transform: uppercase !important;
+    font-size: 0.8rem !important;
+    letter-spacing: 0.06em !important;
+    border-bottom: 2px solid rgba(186, 230, 253, 0.6) !important;
+    padding: 1rem 0.75rem !important;
+}
+
+.fi-ta-cell {
+    font-size: 0.9rem !important;
+    font-weight: 500 !important;
+    padding: 0.85rem 0.75rem !important;
+}
+
+.fi-ta-row {
+    transition: background 0.2s ease !important;
+    border-bottom: 1px solid rgba(241, 245, 249, 0.8) !important;
+}
+
+.fi-ta-row:hover {
+    background: linear-gradient(90deg, rgba(240, 249, 255, 0.5), rgba(224, 242, 254, 0.4)) !important;
+}
+
+/* ====== 8. FORMS ====== */
+.fi-section {
+    background: linear-gradient(145deg, rgba(255, 255, 255, 0.92), rgba(240, 249, 255, 0.88)) !important;
+    backdrop-filter: blur(20px) !important;
+    border: 1px solid rgba(186, 230, 253, 0.5) !important;
+    border-radius: 1.25rem !important;
+    box-shadow: 0 8px 32px rgba(14, 165, 233, 0.06) !important;
+}
+
+.fi-section-header-heading {
+    font-size: 1.1rem !important;
+    font-weight: 800 !important;
+    color: #0c4a6e !important;
+}
+
+.fi-input-wrp {
+    border-radius: 0.75rem !important;
+    transition: all 0.3s ease !important;
+}
+
+.fi-input:focus,
+.fi-select-input:focus {
+    border-color: #38bdf8 !important;
+    box-shadow: 0 0 0 3px rgba(56, 189, 248, 0.2), 0 6px 16px rgba(14, 165, 233, 0.1) !important;
+}
+
+.fi-fo-field-wrp label {
+    font-size: 0.9rem !important;
+    font-weight: 700 !important;
+}
+
+/* ====== 9. BUTTONS ====== */
+.fi-btn {
+    border-radius: 0.75rem !important;
+    font-weight: 700 !important;
+    font-size: 0.9rem !important;
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1) !important;
+}
+
+.fi-btn-primary,
+button[type="submit"].fi-btn {
+    background: linear-gradient(135deg, #2563eb, #0ea5e9) !important;
+    box-shadow: 0 4px 16px rgba(37, 99, 235, 0.3) !important;
+    border: none !important;
+}
+
+.fi-btn-primary:hover,
+button[type="submit"].fi-btn:hover {
+    box-shadow: 0 8px 30px rgba(37, 99, 235, 0.4) !important;
+    transform: translateY(-2px) !important;
+}
+
+/* ====== 10. MODALS ====== */
+.fi-modal-content {
+    background: linear-gradient(145deg, rgba(255, 255, 255, 0.97), rgba(240, 249, 255, 0.95)) !important;
+    backdrop-filter: blur(24px) !important;
+    border: 1px solid rgba(186, 230, 253, 0.5) !important;
+    border-radius: 1.5rem !important;
+    box-shadow: 0 25px 80px rgba(0, 0, 0, 0.15) !important;
+}
+
+/* ====== 11. NOTIFICATIONS ====== */
+.fi-no {
+    backdrop-filter: blur(20px) !important;
+    border-radius: 1rem !important;
+    box-shadow: 0 12px 40px rgba(0, 0, 0, 0.12) !important;
+    font-size: 0.95rem !important;
+}
+
+/* ====== 12. PAGINATION ====== */
+.fi-pagination-item-btn {
+    border-radius: 0.625rem !important;
+    font-weight: 600 !important;
+    font-size: 0.9rem !important;
+    transition: all 0.2s ease !important;
+}
+
+.fi-pagination-item-btn:hover {
+    background: rgba(59, 130, 246, 0.12) !important;
+    transform: scale(1.05);
+}
+
+/* ====== 13. BADGES ====== */
+.fi-badge {
+    font-weight: 700 !important;
+    font-size: 0.8rem !important;
+    border-radius: 0.5rem !important;
+    padding: 0.25rem 0.6rem !important;
+}
+
+/* ====== 14. LOGIN PAGE ====== */
+.fi-simple-layout {
+    background: linear-gradient(135deg, #e0f2fe 0%, #f0f9ff 25%, #ecfdf5 50%, #f0fdf4 75%, #eff6ff 100%) !important;
+    background-attachment: fixed !important;
+}
+
+.fi-simple-main-ctn {
+    background: linear-gradient(145deg, rgba(255, 255, 255, 0.9), rgba(240, 249, 255, 0.88)) !important;
+    backdrop-filter: blur(24px) !important;
+    -webkit-backdrop-filter: blur(24px) !important;
+    border: 1px solid rgba(186, 230, 253, 0.5) !important;
+    box-shadow: 0 25px 60px rgba(14, 165, 233, 0.12) !important;
+    border-radius: 1.75rem !important;
+}
+
+/* ====== 15. GLOBAL ANIMATION ====== */
+.fi-page {
+    animation: adminFadeIn 0.35s ease-out;
+}
+
+@keyframes adminFadeIn {
+    from {
+        opacity: 0;
+        transform: translateY(8px);
+    }
+
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+/* ====== 16. BREADCRUMBS ====== */
+.fi-breadcrumbs {
+    font-size: 0.9rem !important;
+    font-weight: 600 !important;
+}
+
+/* ====== 17. SEARCH INPUT ====== */
+.fi-global-search-input {
+    border-radius: 0.875rem !important;
+    font-size: 0.95rem !important;
+}
+
+/* ====== 18. ACCOUNT WIDGET ====== */
+.fi-ac-widget,
+.fi-widget {
+    background: linear-gradient(145deg, rgba(255, 255, 255, 0.92), rgba(240, 249, 255, 0.88)) !important;
+    backdrop-filter: blur(20px) !important;
+    border: 1px solid rgba(186, 230, 253, 0.5) !important;
+    border-radius: 1.25rem !important;
+    box-shadow: 0 8px 32px rgba(14, 165, 233, 0.06) !important;
+}
+
+/* ====== 19. FILAMENT WIDGETS GAP ====== */
+.fi-widgets {
+    gap: 1.25rem !important;
+}
+
+/* ====== 20. MAIN CONTENT ====== */
+.fi-main {
+    padding: 1.75rem !important;
+}
+
+/* ====== 21. SCROLLBAR ====== */
+html {
+    scroll-behavior: smooth;
+}
+
+::-webkit-scrollbar {
+    width: 8px;
+    height: 8px;
+}
+
+::-webkit-scrollbar-track {
+    background: rgba(241, 245, 249, 0.5);
+}
+
+::-webkit-scrollbar-thumb {
+    background: linear-gradient(180deg, #7dd3fc, #93c5fd);
+    border-radius: 10px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+    background: linear-gradient(180deg, #38bdf8, #60a5fa);
+}
+
+/* ====== 22. TABS (Filament) ====== */
+.fi-tabs {
+    background: rgba(240, 249, 255, 0.6) !important;
+    border-radius: 1rem !important;
+    padding: 0.35rem !important;
+    border: 1px solid rgba(186, 230, 253, 0.3) !important;
+}
+
+.fi-tabs-item-btn {
+    border-radius: 0.75rem !important;
+    font-weight: 700 !important;
+    transition: all 0.3s ease !important;
+}
+
+.fi-tabs-item-btn[aria-selected="true"] {
+    background: linear-gradient(135deg, #2563eb, #0ea5e9) !important;
+    color: white !important;
+    box-shadow: 0 4px 14px rgba(37, 99, 235, 0.3) !important;
+}
+
+/* ====== 23. FIX SELECT/DROPDOWN ARROWS — Sửa lỗi nhiều mũi tên ====== */
+/* Ẩn tất cả arrow mặc định của browser và Filament trên custom select */
+.form-select {
+    -webkit-appearance: none !important;
+    -moz-appearance: none !important;
+    appearance: none !important;
+    background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 20 20'%3e%3cpath stroke='%236b7280' stroke-linecap='round' stroke-linejoin='round' stroke-width='1.5' d='M6 8l4 4 4-4'/%3e%3c/svg%3e") !important;
+    background-position: right 0.75rem center !important;
+    background-repeat: no-repeat !important;
+    background-size: 1.25em 1.25em !important;
+    padding-right: 2.5rem !important;
+}
+
+/* Ẩn icon SVG arrow Filament đặt kế bên select */
+.form-select+svg,
+.form-select~svg,
+.form-select-wrapper svg.fi-select-icon,
+select.form-select::-ms-expand {
+    display: none !important;
+}
+
+/* Fix cho Filament native selects cũng bị trùng arrow */
+.fi-select-wrp select {
+    -webkit-appearance: none !important;
+    -moz-appearance: none !important;
+    appearance: none !important;
+}
+
+/* ====== 24. DASHBOARD WELCOME CARD ====== */
+.fi-ac-widget {
+    background: linear-gradient(135deg, rgba(255, 255, 255, 0.95), rgba(224, 242, 254, 0.9)) !important;
+    border: 1px solid rgba(147, 197, 253, 0.4) !important;
+    border-radius: 1.25rem !important;
+    box-shadow: 0 8px 32px rgba(59, 130, 246, 0.06) !important;
+}
+
+/* ====== 25. ACTION ICON BUTTONS ====== */
+.fi-icon-btn {
+    border-radius: 0.75rem !important;
+    transition: all 0.25s ease !important;
+}
+
+.fi-icon-btn:hover {
+    background: rgba(59, 130, 246, 0.08) !important;
+    transform: scale(1.06) !important;
+}
+
+/* ====== 26. EMPTY STATE ====== */
+.fi-ta-empty-state {
+    padding: 3rem !important;
+}
+
+.fi-ta-empty-state-heading {
+    font-size: 1.1rem !important;
+    font-weight: 800 !important;
+    color: #0c4a6e !important;
+}
+
+/* ====== 27. CREATE/EDIT FORM ACTIONS ====== */
+.fi-form-actions {
+    border-top: 1px solid rgba(186, 230, 253, 0.4) !important;
+    padding-top: 1.5rem !important;
+}
+
+/* ====== 28. DROPDOWN MENUS ====== */
+.fi-dropdown-panel {
+    background: rgba(255, 255, 255, 0.97) !important;
+    backdrop-filter: blur(20px) !important;
+    border: 1px solid rgba(186, 230, 253, 0.5) !important;
+    border-radius: 1rem !important;
+    box-shadow: 0 16px 48px rgba(0, 0, 0, 0.1) !important;
+}
+
+/* ====== 29. HEADER ACTIONS (Create, Export, etc) ====== */
+.fi-header-actions .fi-btn {
+    border-radius: 0.875rem !important;
+    font-weight: 700 !important;
+    letter-spacing: 0.02em !important;
+}
