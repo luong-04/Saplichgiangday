@@ -5,6 +5,8 @@ namespace App\Filament\Pages;
 use Filament\Pages\Page;
 use App\Models\ClassRoom;
 use App\Models\Schedule;
+use Maatwebsite\Excel\Facades\Excel; // Thêm dòng này
+use App\Exports\TimetableExport;
 
 class ViewTimetables extends Page
 {
@@ -41,6 +43,14 @@ class ViewTimetables extends Page
                 'gvcn' => $class->teacher ? $class->teacher->name : 'Chưa có',
                 'data' => $data
             ];
+        }
+    }
+    public function exportExcel($classId)
+    {
+        $tkbData = collect($this->timetables)->firstWhere('id', $classId);
+        if ($tkbData) {
+            $fileName = 'TKB_Lop_' . $tkbData['name'] . '.xlsx';
+            return Excel::download(new TimetableExport($tkbData), $fileName);
         }
     }
 }
