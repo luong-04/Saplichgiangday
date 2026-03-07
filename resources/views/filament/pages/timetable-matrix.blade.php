@@ -15,9 +15,9 @@
         background: linear-gradient(145deg, rgba(255,255,255,0.94), rgba(240,249,255,0.9));
         backdrop-filter: blur(16px);
         border: 1px solid rgba(186,230,253,0.5);
-        border-radius: 1.25rem;
-        box-shadow: 0 6px 24px rgba(14,165,233,0.06);
-        padding: 1.75rem;
+        border-radius: 1rem;
+        box-shadow: 0 4px 20px rgba(14,165,233,0.06);
+        padding: 1.25rem;
         transition: all 0.3s ease;
     }
     .matrix-card:hover { box-shadow: 0 10px 36px rgba(14,165,233,0.1); }
@@ -56,9 +56,9 @@
     .form-select {
         width: 100%;
         border: 1px solid rgba(186,230,253,0.6);
-        border-radius: 0.75rem;
-        padding: 0.75rem 2.5rem 0.75rem 1rem;
-        font-size: 0.95rem;
+        border-radius: 0.5rem;
+        padding: 0.5rem 2rem 0.5rem 0.75rem;
+        font-size: 0.85rem;
         font-weight: 600;
         background-color: white;
         background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 20 20'%3e%3cpath stroke='%236b7280' stroke-linecap='round' stroke-linejoin='round' stroke-width='1.5' d='M6 8l4 4 4-4'/%3e%3c/svg%3e");
@@ -131,33 +131,33 @@
         z-index: 10;
     }
     .matrix-table tbody td {
-        padding: 0.3rem;
+        padding: 0.15rem;
         border-bottom: 1px solid rgba(241,245,249,0.8);
         border-right: 1px solid rgba(241,245,249,0.6);
-        height: 4.5rem;
+        height: 3.5rem;
         text-align: center;
         vertical-align: middle;
         transition: background 0.15s ease;
     }
 
     .cell-period-m {
-        font-weight: 900; color: #bae6fd; font-size: 1.3rem; font-style: italic;
-        background: rgba(248,250,252,0.5) !important; width: 3rem;
+        font-weight: 900; color: #bae6fd; font-size: 1.1rem; font-style: italic;
+        background: rgba(248,250,252,0.5) !important; width: 2.5rem;
     }
 
     /* Cell có nội dung */
     .cell-filled {
         background: linear-gradient(135deg, #eff6ff, #dbeafe);
         border-left: 3px solid #3b82f6;
-        border-radius: 0.5rem;
-        padding: 0.4rem 0.5rem;
+        border-radius: 0.4rem;
+        padding: 0.25rem 0.4rem;
         text-align: left;
         display: flex; flex-direction: column; justify-content: center; align-items: flex-start;
         height: 100%;
         position: relative;
     }
-    .cell-filled-sub { font-weight: 800; font-size: 0.78rem; color: #0c4a6e; text-transform: uppercase; }
-    .cell-filled-tea { font-size: 0.68rem; color: #2563eb; font-weight: 700; font-style: italic; margin-top: 1px; }
+    .cell-filled-sub { font-weight: 800; font-size: 0.72rem; color: #0c4a6e; text-transform: uppercase; }
+    .cell-filled-tea { font-size: 0.65rem; color: #2563eb; font-weight: 700; font-style: italic; margin-top: 1px; }
     .cell-delete {
         position: absolute; top: 2px; right: 2px;
         width: 1.1rem; height: 1.1rem;
@@ -183,7 +183,7 @@
         display: flex; align-items: center; justify-content: center;
         transition: all 0.2s ease;
         cursor: pointer;
-        min-height: 3.5rem;
+        min-height: 3rem;
     }
     .cell-empty:hover { border-color: rgba(59,130,246,0.3); background: rgba(240,249,255,0.3); }
     .cell-empty.dragover { border-color: #3b82f6; background: rgba(224,242,254,0.6); }
@@ -272,7 +272,7 @@
                 <select wire:model.live="dragTeacherId" class="form-select">
                     <option value="">── Chọn Giáo viên ──</option>
                     @foreach($filteredTeachers as $t)
-                        <option value="{{ $t->id }}">{{ $t->name }} {{ $t->short_code ? '('.$t->short_code.')' : '' }}</option>
+                        <option value="{{ $t->id }}">{{ $t->name }} {{ $t->short_code ? '('.$t->short_code.')' : '' }} - Còn {{ $t->remaining_quota }} tiết</option>
                     @endforeach
                 </select>
             </div>
@@ -284,11 +284,15 @@
                         $subName = $subjects->firstWhere('id', $dragSubjectId)?->name ?? '';
                         $teaObj = $filteredTeachers->firstWhere('id', $dragTeacherId);
                         $teaName = $teaObj ? ($teaObj->short_code ?: $teaObj->name) : '';
+                        $remaining = $teaObj ? $teaObj->remaining_quota : 0;
                     @endphp
                     <div class="drag-card" id="drag-card" draggable="true"
                          ondragstart="event.dataTransfer.setData('text/plain', '{{ $dragTeacherId }}_{{ $dragSubjectId }}')">
                         <div>📚 {{ $subName }}</div>
-                        <div class="drag-card-sub">👨‍🏫 {{ $teaName }}</div>
+                        <div class="drag-card-sub flex justify-between">
+                            <span>👨‍🏫 {{ $teaName }}</span>
+                            <span class="text-xs text-blue-500 bg-blue-100 px-1.5 py-0.5 rounded-md">Còn {{ $remaining }}</span>
+                        </div>
                     </div>
                     <p style="font-size:0.75rem; color:#94a3b8; text-align:center; margin-top:0.75rem; font-weight:600;">
                         Kéo thẻ này vào ô trống trong bảng bên phải
@@ -325,8 +329,8 @@
                     <table class="matrix-table">
                         <thead>
                             <tr>
-                                <th style="width:3rem;">Tiết</th>
-                                @for($d=2; $d<=7; $d++) <th>Thứ {{ $d }}</th> @endfor
+                                <th style="width:2.5rem; padding: 0.5rem 0;">Tiết</th>
+                                @for($d=2; $d<=7; $d++) <th style="padding: 0.5rem 0;">Thứ {{ $d }}</th> @endfor
                             </tr>
                         </thead>
                         <tbody>

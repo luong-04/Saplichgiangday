@@ -72,8 +72,8 @@
         }
         .grid-table th {
             background: linear-gradient(135deg, #eff6ff, #e0f2fe);
-            padding: 14px 10px;
-            font-size: 0.75rem;
+            padding: 4px 4px;
+            font-size: 0.65rem;
             font-weight: 700;
             color: #1e40af;
             text-transform: uppercase;
@@ -94,10 +94,10 @@
 
         .cell-filled {
             background: linear-gradient(135deg, #eff6ff, #dbeafe);
-            border-radius: 0.75rem;
-            padding: 10px 8px;
+            border-radius: 0.35rem;
+            padding: 4px 4px;
             border-left: 3px solid #3b82f6;
-            min-height: 60px;
+            min-height: 40px;
             display: flex;
             flex-direction: column;
             justify-content: center;
@@ -176,7 +176,7 @@
             </div>
 
             <!-- Search Card -->
-            <div class="w-full max-w-2xl glass-card rounded-2xl shadow-xl shadow-blue-100/50 p-6 sm:p-8 mb-8">
+            <div class="w-full max-w-2xl glass-card rounded-2xl shadow-xl shadow-blue-100/50 p-5 sm:p-6 mb-6">
                 <form action="{{ route('search') }}" method="POST" class="flex flex-col sm:flex-row gap-3">
                     @csrf
                     <div class="relative flex-1">
@@ -265,7 +265,7 @@
                             </div>
                         @else
                             <div class="overflow-x-auto rounded-xl border border-slate-200">
-                                <table class="grid-table w-full text-center table-fixed" style="min-width: 850px;">
+                                <table class="grid-table w-full text-center table-fixed" style="min-width: 650px;">
                                     <thead>
                                         <tr>
                                             <th class="w-20 border-r border-blue-100">Tiết</th>
@@ -278,25 +278,25 @@
                                         @for($p = 1; $p <= 10; $p++)
                                             @if($p == 6)
                                                 <tr>
-                                                    <td colspan="7" class="!py-2 text-xs font-bold text-slate-400 uppercase tracking-[0.3em] !bg-gradient-to-r from-slate-50 to-slate-100 text-center border-b border-slate-200">
+                                                    <td colspan="7" class="!py-1.5 text-[10px] font-bold text-slate-400 uppercase tracking-[0.3em] !bg-gradient-to-r from-slate-50 to-slate-100 text-center border-b border-slate-200">
                                                         ☀ Nghỉ trưa
                                                     </td>
                                                 </tr>
                                             @endif
                                             <tr>
-                                                <td class="border-r border-slate-100 !bg-slate-50/50">
-                                                    <div class="font-extrabold text-lg text-slate-300 italic leading-none">{{ $p }}</div>
-                                                    <div class="text-[10px] font-semibold text-slate-400 uppercase tracking-wider mt-0.5">{{ $p <= 5 ? 'Sáng' : 'Chiều' }}</div>
+                                                <td class="border-r border-slate-100 !bg-slate-50/50 p-1">
+                                                    <div class="font-extrabold text-sm text-slate-300 italic leading-none">{{ $p }}</div>
+                                                    <div class="text-[8px] font-semibold text-slate-400 uppercase tracking-wider mt-0.5">{{ $p <= 5 ? 'Sáng' : 'Chiều' }}</div>
                                                 </td>
                                                 @for($d = 2; $d <= 7; $d++)
-                                                    <td class="h-24">
+                                                    <td class="h-12 p-0.5">
                                                         @if(isset($grid[$d][$p]))
                                                             <div class="cell-filled text-left">
-                                                                <div class="font-bold text-sm text-slate-800 leading-tight uppercase tracking-tight">{{ $grid[$d][$p]['subject'] }}</div>
-                                                                <div class="text-[11px] text-blue-600 font-semibold mt-1 italic">{{ $grid[$d][$p]['extra'] }}</div>
+                                                                <div class="font-bold text-[11px] text-slate-800 leading-tight uppercase tracking-tight">{{ $grid[$d][$p]['subject'] }}</div>
+                                                                <div class="text-[9px] text-blue-600 font-semibold mt-0.5 italic">{{ $grid[$d][$p]['extra'] }}</div>
                                                             </div>
                                                         @else
-                                                            <div class="w-full h-full bg-slate-50/30 rounded-lg"></div>
+                                                            <div class="w-full h-full bg-slate-50/30 rounded-md min-h-[40px]"></div>
                                                         @endif
                                                     </td>
                                                 @endfor
@@ -325,24 +325,29 @@
 
     <script>
         function printSchedule() {
-            const content = document.getElementById('printArea').innerHTML;
+            // Get only the table wrapper, not the header with SVGs
+            const content = document.querySelector('.grid-table').parentElement.innerHTML;
             const win = window.open('', '_blank');
             win.document.write('<html><head><title>In Thời Khóa Biểu - {{ $targetName ?? "" }}</title>');
             win.document.write('<style>');
             win.document.write(`
                 * { font-family: 'Be Vietnam Pro', Arial, sans-serif; margin: 0; padding: 0; box-sizing: border-box; }
-                body { padding: 30px; }
+                body { padding: 15px; }
                 .no-print { display: none !important; }
-                table { width: 100%; border-collapse: collapse; margin-top: 20px; table-layout: fixed; }
-                td, th { border: 1px solid #ccc; padding: 10px; text-align: center; font-size: 11px; word-wrap: break-word; }
+                table { width: 100%; border-collapse: collapse; margin-top: 10px; table-layout: fixed; page-break-inside: auto; }
+                tr { page-break-inside: avoid; page-break-after: auto; }
+                td, th { border: 1px solid #ccc; padding: 4px; text-align: center; font-size: 10px; word-wrap: break-word; }
                 th { background: #f0f9ff; font-weight: 700; text-transform: uppercase; color: #1e40af; }
-                .cell-filled { padding: 6px; text-align: left; }
-                .cell-filled div:first-child { font-weight: 700; font-size: 12px; }
-                .cell-filled div:last-child { font-size: 10px; color: #2563eb; margin-top: 2px; }
-                h1 { font-size: 22px; text-align: center; text-transform: uppercase; margin: 0; }
-                h2 { font-size: 16px; text-align: center; margin-top: 10px; font-weight: 600; }
-                .school-name { text-align: center; color: #666; font-size: 11px; text-transform: uppercase; letter-spacing: 3px; margin-top: 6px; }
-                hr { margin: 15px 0; border-color: #e2e8f0; }
+                .cell-filled { padding: 4px; text-align: left; }
+                .cell-filled div:first-child { font-weight: 700; font-size: 10px; }
+                .cell-filled div:last-child { font-size: 9px; color: #2563eb; margin-top: 1px; }
+                h1 { font-size: 16px; text-align: center; text-transform: uppercase; margin: 0; }
+                h2 { font-size: 13px; text-align: center; margin-top: 5px; font-weight: 600; }
+                .school-name { text-align: center; color: #666; font-size: 10px; text-transform: uppercase; letter-spacing: 2px; margin-top: 4px; }
+                hr { margin: 10px 0; border-color: #e2e8f0; }
+                @media print {
+                    @page { margin: 0.5cm; }
+                }
             `);
             win.document.write('</style></head><body>');
             win.document.write('<h1>Thời Khóa Biểu {{ $type ?? "" }}: {{ $targetName ?? "" }}</h1>');

@@ -13,6 +13,11 @@ class ScheduleCompletionChart extends ChartWidget
     protected int|string|array $columnSpan = 'full';
     protected static ?string $maxHeight = '320px';
 
+    public static function canView(): bool
+    {
+        return false;
+    }
+
     protected function getType(): string
     {
         return 'bar';
