@@ -89,7 +89,7 @@ class ScheduleService
             return $sp;
 
         if ($room_id) {
-            $rc = $this->checkRoomConflict($filtered, $room_id, $day, $period);
+            $rc = $this->checkRoomConflict($filtered, $room_id, $day, $period, $class_id, $subject_id);
             if ($rc)
                 return $rc;
         }
@@ -430,7 +430,7 @@ class ScheduleService
         return false;
     }
 
-    private function checkRoomConflict(Collection $schedules, $room_id, $day, $period, $class_id = null)
+    private function checkRoomConflict(Collection $schedules, $room_id, $day, $period, $class_id = null, $subject_id = null)
     {
         $room = Room::find($room_id);
         if (!$room)
@@ -438,6 +438,16 @@ class ScheduleService
 
         if (!$room->status) {
             return "Phòng {$room->name} đang bảo trì, không thể sử dụng.";
+        }
+
+        if ($subject_id) {
+            $subject = Subject::find($subject_id);
+            if ($subject && $subject->room_category_id) {
+                if ($room->room_category_id !== $subject->room_category_id) {
+                    $categoryName = $subject->roomCategory ? $subject->roomCategory->name : 'đã chọn';
+                    return "Môn {$subject->name} yêu cầu phòng thuộc danh mục '{$categoryName}', nhưng {  $room->name} không phù hợp.";
+                }
+            }
         }
 
         $roomUsageCount = $schedules
@@ -453,7 +463,7 @@ class ScheduleService
         if ($class_id) {
             $class = ClassRoom::find($class_id);
             if ($class && $class->student_count > $room->capacity) {
-                return "⚠️ Cảnh báo: Sĩ số lớp {$class->name} ({$class->student_count}) vượt quá sức chứa phòng {$room->name} ({$room->capacity}).";
+                return "Sĩ số lớp {$class->name} ({$class->student_count}) vượt quá sức chứa phòng {$room->name} ({$room->capacity}).";
             }
         }
 

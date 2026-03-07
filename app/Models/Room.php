@@ -16,9 +16,9 @@ class Room extends Model
         'status' => 'boolean',
     ];
 
-    public function subjects()
+    public function roomCategory()
     {
-        return $this->belongsToMany(Subject::class , 'room_subject');
+        return $this->belongsTo(RoomCategory::class);
     }
 
     public function schedules()

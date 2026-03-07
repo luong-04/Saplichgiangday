@@ -35,32 +35,21 @@ class RoomResource extends Resource
                 ->default(1)
                 ->minValue(1)
                 ->required(),
-                Forms\Components\Select::make('category')
+                Forms\Components\Select::make('room_category_id')
                 ->label('Loại phòng')
-                ->options([
-                    'Học bình thường' => 'Học bình thường',
-                    'Tin học' => 'Tin học',
-                    'Lab Lý' => 'Lab Lý',
-                    'Lab Hóa' => 'Lab Hóa',
-                    'Nhà đa năng' => 'Nhà đa năng',
+                ->relationship('roomCategory', 'name')
+                ->createOptionForm([
+                    Forms\Components\TextInput::make('name')
+                    ->label('Tên loại phòng')
+                    ->required()
+                    ->maxLength(255),
                 ])
-                ->default('Học bình thường')
                 ->required(),
                 Forms\Components\Toggle::make('status')
                 ->label('Trạng thái hoạt động')
                 ->helperText('Tắt nếu phòng đang bảo trì')
                 ->default(true),
             ])->columns(2),
-
-            Forms\Components\Section::make('Môn học được phép sử dụng')
-            ->description('Chọn các môn thực hành được phép dùng phòng này')
-            ->schema([
-                Forms\Components\Select::make('subjects')
-                ->label('Môn học')
-                ->multiple()
-                ->relationship('subjects', 'name')
-                ->preload(),
-            ]),
         ]);
     }
 
@@ -76,7 +65,7 @@ class RoomResource extends Resource
             ->label('Sức chứa')
             ->suffix(' lớp')
             ->alignCenter(),
-            Tables\Columns\TextColumn::make('category')
+            Tables\Columns\TextColumn::make('roomCategory.name')
             ->label('Loại phòng')
             ->searchable()
             ->badge(),

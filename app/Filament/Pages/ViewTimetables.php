@@ -16,6 +16,7 @@ class ViewTimetables extends Page
     protected static ?string $title = 'Hệ Thống Thời Khóa Biểu';
     protected static string $view = 'filament.pages.view-timetables';
 
+    public $viewMode = 'class';
     public $selectedGrade = '10';
     public $timetables = [];
 
@@ -44,45 +45,83 @@ class ViewTimetables extends Page
         $this->loadData();
     }
 
+    public function updatedViewMode()
+    {
+        $this->loadData();
+    }
+
     public function loadData()
     {
-        $classes = ClassRoom::with('teacher')
-            ->where('grade', $this->selectedGrade)
-            ->orderBy('name')
-            ->get();
-
-        if ($classes->isEmpty()) {
-            $this->timetables = [];
-            return;
-        }
-
-        $classIds = $classes->pluck('id');
-
-        // 1 query duy nhất lấy TẤT CẢ schedules cho tất cả lớp trong khối
-        $allSchedules = Schedule::with(['teacher', 'subject'])
-            ->whereIn('class_id', $classIds)
-            ->get()
-            ->groupBy('class_id');
-
         $this->timetables = [];
 
-        foreach ($classes as $class) {
-            $data = [];
-            $schedules = $allSchedules->get($class->id, collect());
+        if ($this->viewMode === 'room') {
+            $rooms = \App\Models\Room::orderBy('name')->get();
+            if ($rooms->isEmpty())
+                return;
 
-            foreach ($schedules as $s) {
-                $data[$s->day][$s->period] = [
-                    'sub' => $s->subject->name,
-                    'tea' => $s->teacher->short_code ?? $s->teacher->name,
-                ];
+            $allSchedules = Schedule::with(['teacher', 'subject', 'classRoom'])
+                ->whereNotNull('room_id')
+                ->get()
+                ->groupBy('room_id');
+
+            foreach ($rooms as $room) {
+                $data = [];
+                $schedules = $allSchedules->get($room->id, collect());
+
+                foreach ($schedules as $s) {
+                    $className = $s->classRoom ? $s->classRoom->name : '';
+                    $data[$s->day][$s->period] = [
+                        'sub' => $s->subject->name . ' - ' . $className,
+                        'tea' => $s->teacher->short_code ?? $s->teacher->name,
+                    ];
+                }
+
+                if (!empty($data)) {
+                    $this->timetables[] = [
+                        'id' => $room->id,
+                        'name' => $room->name,
+                        'gvcn' => 'Sức chứa: ' . $room->capacity,
+                        'data' => $data,
+                    ];
+                }
+            }
+        }
+        else {
+            $classes = ClassRoom::with('teacher')
+                ->where('grade', $this->selectedGrade)
+                ->orderBy('name')
+                ->get();
+
+            if ($classes->isEmpty()) {
+                return;
             }
 
-            $this->timetables[] = [
-                'id' => $class->id,
-                'name' => $class->name,
-                'gvcn' => $class->teacher ? $class->teacher->name : 'Chưa có',
-                'data' => $data,
-            ];
+            $classIds = $classes->pluck('id');
+
+            // 1 query duy nhất lấy TẤT CẢ schedules cho tất cả lớp trong khối
+            $allSchedules = Schedule::with(['teacher', 'subject'])
+                ->whereIn('class_id', $classIds)
+                ->get()
+                ->groupBy('class_id');
+
+            foreach ($classes as $class) {
+                $data = [];
+                $schedules = $allSchedules->get($class->id, collect());
+
+                foreach ($schedules as $s) {
+                    $data[$s->day][$s->period] = [
+                        'sub' => $s->subject->name,
+                        'tea' => $s->teacher->short_code ?? $s->teacher->name,
+                    ];
+                }
+
+                $this->timetables[] = [
+                    'id' => $class->id,
+                    'name' => $class->name,
+                    'gvcn' => $class->teacher ? $class->teacher->name : 'Chưa có',
+                    'data' => $data,
+                ];
+            }
         }
     }
 

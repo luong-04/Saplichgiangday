@@ -32,9 +32,9 @@ class Subject extends Model
     }
 
     // Phòng chức năng được phép dùng cho môn này
-    public function rooms()
+    public function roomCategory()
     {
-        return $this->belongsToMany(Room::class , 'room_subject');
+        return $this->belongsTo(RoomCategory::class);
     }
 
     /**

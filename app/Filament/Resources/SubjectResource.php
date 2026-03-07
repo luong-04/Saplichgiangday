@@ -68,13 +68,14 @@ class SubjectResource extends Resource
                 ])
                 ->default(1)
                 ->required(),
-                Forms\Components\Select::make('preferred_room_category')
+                Forms\Components\Select::make('room_category_id')
                 ->label('Loại phòng ưu tiên')
-                ->options([
-                    'Tin học' => 'Tin học',
-                    'Lab Lý' => 'Lab Lý',
-                    'Lab Hóa' => 'Lab Hóa',
-                    'Nhà đa năng' => 'Nhà đa năng',
+                ->relationship('roomCategory', 'name')
+                ->createOptionForm([
+                    Forms\Components\TextInput::make('name')
+                    ->label('Tên loại phòng')
+                    ->required()
+                    ->maxLength(255),
                 ])
                 ->nullable(),
             ])->columns(2),
@@ -114,7 +115,7 @@ class SubjectResource extends Resource
             ->label('Tiết liền')
             ->numeric()
             ->alignCenter(),
-            Tables\Columns\TextColumn::make('preferred_room_category')
+            Tables\Columns\TextColumn::make('roomCategory.name')
             ->label('Phòng ưu tiên')
             ->searchable(),
         ])

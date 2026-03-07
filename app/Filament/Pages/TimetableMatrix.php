@@ -20,6 +20,43 @@ class TimetableMatrix extends Page
     protected static ?string $title = 'Xếp Lịch Kéo - Thả';
     protected static string $view = 'filament.pages.timetable-matrix';
 
+    protected function getHeaderActions(): array
+    {
+        return [
+            \Filament\Actions\Action::make('autoSchedule')
+            ->label('Tự động lấp đầy')
+            ->color('success')
+            ->icon('heroicon-o-sparkles')
+            ->requiresConfirmation()
+            ->modalHeading('Xếp lịch tự động')
+            ->modalDescription('Hệ thống sẽ tự động ghép các tiết học còn thiếu vào khoảng trống dựa trên ràng buộc. Việc này có thể xóa kết quả xếp cũ. Bạn có chắc chắn?')
+            ->action(function () {
+            $service = new \App\Services\AutoScheduleService(new \App\Services\ScheduleService());
+            $stats = $service->run(true);
+
+            if ($stats['failed'] > 0) {
+                Notification::make()
+                    ->title("Thành công {$stats['success']} tiết. Bỏ sót {$stats['failed']} tiết.")
+                    ->body("Một số tiết không thể xếp do thiếu slot hoặc đụng giờ giáo viên/phòng.")
+                    ->warning()
+                    ->send();
+            }
+            else {
+                Notification::make()
+                    ->title('Xếp tự động hoàn tất!')
+                    ->body("Đã xếp thành công toàn bộ {$stats['success']} tiết.")
+                    ->success()
+                    ->send();
+            }
+
+            if ($this->selectedClass) {
+                $this->updatedSelectedClass($this->selectedClass);
+            }
+            $this->refreshAfterChange();
+        }),
+        ];
+    }
+
     public $grades = [];
     public $classes = [];
     public $subjects = [];
@@ -49,7 +86,7 @@ class TimetableMatrix extends Page
         $this->grades = ClassRoom::select('grade')->distinct()->pluck('grade', 'grade')->toArray();
         $this->subjects = Cache::remember('all_subjects', 600, fn() => Subject::all());
         $this->teachers = Teacher::withCount('schedules')->with('subjects')->get();
-        $this->rooms = Room::with('subjects')->get();
+        $this->rooms = Room::all();
 
         try {
             $this->periodsPerDay = Setting::periodsPerDay();
@@ -261,14 +298,12 @@ class TimetableMatrix extends Page
         // Kiểm tra có cần phòng không
         if ($subject && $subject->requiresRoom()) {
             $this->requiresRoom = true;
-            if ($subject->preferred_room_category) {
-                $this->filteredRooms = Room::where('category', $subject->preferred_room_category)->get();
+            if ($subject->room_category_id) {
+                $this->filteredRooms = Room::where('room_category_id', $subject->room_category_id)
+                    ->where('status', true)->get();
             }
             else {
-                $this->filteredRooms = $subject->rooms()->get();
-                if ($this->filteredRooms->isEmpty()) {
-                    $this->filteredRooms = Room::all();
-                }
+                $this->filteredRooms = Room::where('status', true)->get();
             }
         }
 

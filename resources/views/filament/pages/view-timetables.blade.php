@@ -205,6 +205,16 @@
 <div class="tkb-header no-print">
     <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
         <div>
+        <div>
+            <div class="flex items-center gap-4 mb-4">
+                <span style="font-size:0.8rem; font-weight:800; color:#1e40af; text-transform:uppercase;">Chế độ xem:</span>
+                <div class="flex bg-blue-50 p-1 rounded-xl border border-blue-100">
+                    <button wire:click="$set('viewMode', 'class')" class="px-4 py-1.5 rounded-lg text-sm font-bold transition-all {{ $viewMode === 'class' ? 'bg-blue-500 text-white shadow-md' : 'text-blue-600 hover:bg-blue-100' }}">Theo Lớp</button>
+                    <button wire:click="$set('viewMode', 'room')" class="px-4 py-1.5 rounded-lg text-sm font-bold transition-all {{ $viewMode === 'room' ? 'bg-blue-500 text-white shadow-md' : 'text-blue-600 hover:bg-blue-100' }}">Theo Phòng</button>
+                </div>
+            </div>
+
+            @if($viewMode === 'class')
             <span style="font-size:0.7rem; font-weight:800; color:#94a3b8; text-transform:uppercase; letter-spacing:0.15em;">Chọn khối lớp</span>
             <div class="grade-tabs mt-2">
                 @foreach(['10', '11', '12'] as $grade)
@@ -214,6 +224,7 @@
                     </button>
                 @endforeach
             </div>
+            @endif
         </div>
         <div class="text-right">
             <div class="school-title">
@@ -233,12 +244,12 @@
             <div class="card-header" @click="expanded = !expanded">
                 <div class="flex items-center gap-5">
                     <div class="class-badge" :class="expanded ? 'expanded' : ''">
-                        <span class="class-badge-label">Lớp</span>
+                        <span class="class-badge-label">{{ $viewMode === 'class' ? 'Lớp' : 'Phòng' }}</span>
                         <span class="class-badge-name">{{ $tkb['name'] }}</span>
                     </div>
                     <div>
-                        <div class="class-info-title">TKB Lớp {{ $tkb['name'] }}</div>
-                        <div class="class-info-gvcn">GVCN: <span>{{ $tkb['gvcn'] }}</span></div>
+                        <div class="class-info-title">TKB {{ $viewMode === 'class' ? 'Lớp' : 'Phòng' }} {{ $tkb['name'] }}</div>
+                        <div class="class-info-gvcn">{{ $viewMode === 'class' ? 'GVCN:' : '' }} <span>{{ $tkb['gvcn'] }}</span></div>
                     </div>
                 </div>
 
