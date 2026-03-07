@@ -5,17 +5,58 @@ namespace App\Services;
 use App\Models\Schedule;
 use App\Models\Subject;
 use App\Models\Teacher;
+use App\Models\Setting;
+use Illuminate\Support\Collection;
 
 class ScheduleService
 {
     /**
+     * Cache toàn bộ schedules để validate in-memory (tránh query DB nhiều lần).
+     */
+    private ?Collection $cachedSchedules = null;
+
+    /**
+     * Load toàn bộ lịch 1 lần vào memory.
+     */
+    public function loadSchedules(): Collection
+    {
+        if ($this->cachedSchedules === null) {
+            $this->cachedSchedules = Schedule::all();
+        }
+        return $this->cachedSchedules;
+    }
+
+    /**
+     * Set cached schedules từ bên ngoài (khi TimetableMatrix đã load sẵn).
+     */
+    public function setSchedules(Collection $schedules): void
+    {
+        $this->cachedSchedules = $schedules;
+    }
+
+    /**
+     * Clear cache (sau khi thêm/xóa schedule).
+     */
+    public function clearCache(): void
+    {
+        $this->cachedSchedules = null;
+    }
+
+    /**
      * Validate toàn bộ ràng buộc trước khi xếp lịch.
-     * Trả về string (thông báo lỗi) nếu vi phạm, trả về false nếu hợp lệ.
+     * Trả về string (lỗi) nếu vi phạm, false nếu hợp lệ.
      */
     public function validate($teacher_id, $class_id, $subject_id, $day, $period, $ignore_schedule_id = null)
     {
+        $schedules = $this->loadSchedules();
+
+        // Filter bỏ bản ghi đang sửa
+        $filtered = $ignore_schedule_id
+            ? $schedules->where('id', '!=', $ignore_schedule_id)
+            : $schedules;
+
         // 1. Kiểm tra trùng lịch cơ bản
-        $conflict = $this->checkConflict($teacher_id, $class_id, $day, $period, $ignore_schedule_id);
+        $conflict = $this->checkConflict($filtered, $teacher_id, $class_id, $day, $period);
         if ($conflict)
             return $conflict;
 
@@ -27,62 +68,219 @@ class ScheduleService
             return "Không tìm thấy thông tin môn học hoặc giáo viên.";
         }
 
-        // 3. Kiểm tra giáo viên có rảnh ở thứ/tiết này không
+        // 3. Kiểm tra tiết cố định (không cho đè lên Chào cờ / Sinh hoạt)
+        $fixedCheck = $this->checkFixedPeriodConflict($filtered, $class_id, $day, $period);
+        if ($fixedCheck)
+            return $fixedCheck;
+
+        // 4. Kiểm tra GV có rảnh không
         $availability = $this->checkTeacherAvailability($teacher, $day, $period);
         if ($availability)
             return $availability;
 
-        // 4. Kiểm tra số tiết tối đa môn học / tuần
-        $weeklyLimit = $this->checkSubjectWeeklyLimit($subject, $class_id, $ignore_schedule_id);
+        // 5. Kiểm tra số tiết tối đa môn học / tuần
+        $weeklyLimit = $this->checkSubjectWeeklyLimit($filtered, $subject, $class_id);
         if ($weeklyLimit)
             return $weeklyLimit;
 
-        // 5. Kiểm tra số tiết tối đa môn học / ngày
-        $dailySubjectLimit = $this->checkSubjectDailyLimit($subject, $class_id, $day, $ignore_schedule_id);
+        // 6. Kiểm tra số tiết tối đa môn học / ngày
+        $dailySubjectLimit = $this->checkSubjectDailyLimit($filtered, $subject, $class_id, $day);
         if ($dailySubjectLimit)
             return $dailySubjectLimit;
 
-        // 6. Kiểm tra số tiết tối đa giáo viên / ngày
-        $dailyTeacherLimit = $this->checkTeacherDailyLimit($teacher, $day, $ignore_schedule_id);
+        // 7. Kiểm tra số tiết tối đa GV / ngày
+        $dailyTeacherLimit = $this->checkTeacherDailyLimit($filtered, $teacher, $day);
         if ($dailyTeacherLimit)
             return $dailyTeacherLimit;
 
-        // 7. Kiểm tra định mức tiết/tuần của giáo viên
-        $weeklyTeacherLimit = $this->checkTeacherWeeklyLimit($teacher, $ignore_schedule_id);
+        // 8. Kiểm tra định mức tiết/tuần GV
+        $weeklyTeacherLimit = $this->checkTeacherWeeklyLimit($filtered, $teacher);
         if ($weeklyTeacherLimit)
             return $weeklyTeacherLimit;
+
+        // 9. Cảnh báo tiết trống (không block, chỉ warning)
+        // Sẽ trả về warning message hoặc false
+        // Không block ở đây, TimetableMatrix sẽ xử lý hiển thị warning
 
         return false; // Tất cả đều hợp lệ
     }
 
     /**
-     * Kiểm tra trùng lịch (CheckConflict)
+     * Validate cho tiết đôi: kiểm tra cả tiết hiện tại + tiết kế liền.
+     * Trả về ['error' => string] hoặc ['ok' => true, 'second_period' => int]
      */
-    public function checkConflict($teacher_id, $class_id, $day, $period, $ignore_schedule_id = null)
+    public function validateDoublePeriod($teacher_id, $class_id, $subject_id, $day, $period, $ignore_schedule_id = null): array
     {
-        // 1. Giáo viên đã có lịch ở lớp khác vào cùng Thứ & Tiết?
-        $teacherConflict = Schedule::where('teacher_id', $teacher_id)
-            ->where('day', $day)
-            ->where('period', $period);
-
-        if ($ignore_schedule_id) {
-            $teacherConflict->where('id', '!=', $ignore_schedule_id);
+        $subject = Subject::find($subject_id);
+        if (!$subject || !$subject->is_double_period) {
+            return ['error' => 'Môn này không phải tiết đôi.'];
         }
 
-        if ($teacherConflict->exists()) {
+        $lunchAfter = 5;
+        try {
+            $lunchAfter = Setting::lunchAfterPeriod();
+        }
+        catch (\Exception $e) {
+        }
+        $periodsPerDay = 10;
+        try {
+            $periodsPerDay = Setting::periodsPerDay();
+        }
+        catch (\Exception $e) {
+        }
+
+        $secondPeriod = $period + 1;
+
+        // Không cho tiết đôi vắt ngang qua giờ nghỉ trưa
+        if ($period == $lunchAfter) {
+            return ['error' => "Không thể xếp tiết đôi vắt qua giờ nghỉ trưa (tiết $period và $secondPeriod)."];
+        }
+
+        // Không cho tiết đôi vượt quá số tiết/ngày
+        if ($secondPeriod > $periodsPerDay) {
+            return ['error' => "Tiết $secondPeriod vượt quá số tiết trong ngày ($periodsPerDay)."];
+        }
+
+        // Validate tiết thứ 1
+        $error1 = $this->validate($teacher_id, $class_id, $subject_id, $day, $period, $ignore_schedule_id);
+        if ($error1)
+            return ['error' => "Tiết $period: $error1"];
+
+        // Validate tiết thứ 2
+        $error2 = $this->validate($teacher_id, $class_id, $subject_id, $day, $secondPeriod, $ignore_schedule_id);
+        if ($error2)
+            return ['error' => "Tiết $secondPeriod: $error2"];
+
+        return ['ok' => true, 'second_period' => $secondPeriod];
+    }
+
+    /**
+     * Kiểm tra tiết trống của GV trong ngày.
+     * Trả về warning message hoặc false.
+     */
+    public function checkTeacherGaps(Collection $schedules, Teacher $teacher, $day, $newPeriod): string|false
+    {
+        $maxGap = 2;
+        try {
+            $maxGap = Setting::maxGapPeriods();
+        }
+        catch (\Exception $e) {
+        }
+
+        // Lấy tất cả tiết GV dạy trong ngày + tiết mới
+        $teacherPeriods = $schedules
+            ->where('teacher_id', $teacher->id)
+            ->where('day', $day)
+            ->pluck('period')
+            ->push($newPeriod)
+            ->sort()
+            ->values()
+            ->toArray();
+
+        if (count($teacherPeriods) < 2)
+            return false;
+
+        // Tìm khoảng trống lớn nhất
+        $maxFoundGap = 0;
+        for ($i = 1; $i < count($teacherPeriods); $i++) {
+            $gap = $teacherPeriods[$i] - $teacherPeriods[$i - 1] - 1;
+
+            // Bỏ qua khoảng trống do nghỉ trưa
+            $lunchAfter = 5;
+            try {
+                $lunchAfter = Setting::lunchAfterPeriod();
+            }
+            catch (\Exception $e) {
+            }
+            if ($teacherPeriods[$i - 1] <= $lunchAfter && $teacherPeriods[$i] > $lunchAfter) {
+                continue; // Khoảng trống do nghỉ trưa, bỏ qua
+            }
+
+            if ($gap > $maxFoundGap) {
+                $maxFoundGap = $gap;
+            }
+        }
+
+        if ($maxFoundGap > $maxGap) {
+            return "⚠️ Cảnh báo: GV {$teacher->name} sẽ bị trống {$maxFoundGap} tiết giữa các ca dạy Thứ {$day}.";
+        }
+
+        return false;
+    }
+
+    /**
+     * Kiểm tra tiết liên tiếp quá nhiều.
+     */
+    public function checkTeacherConsecutive(Collection $schedules, Teacher $teacher, $day, $newPeriod): string|false
+    {
+        $maxConsecutive = 4;
+        try {
+            $maxConsecutive = Setting::maxConsecutivePeriods();
+        }
+        catch (\Exception $e) {
+        }
+
+        $teacherPeriods = $schedules
+            ->where('teacher_id', $teacher->id)
+            ->where('day', $day)
+            ->pluck('period')
+            ->push($newPeriod)
+            ->sort()
+            ->values()
+            ->toArray();
+
+        if (count($teacherPeriods) <= $maxConsecutive)
+            return false;
+
+        // Đếm chuỗi tiết liên tiếp dài nhất
+        $maxStreak = 1;
+        $streak = 1;
+        for ($i = 1; $i < count($teacherPeriods); $i++) {
+            if ($teacherPeriods[$i] == $teacherPeriods[$i - 1] + 1) {
+                $streak++;
+                if ($streak > $maxStreak)
+                    $maxStreak = $streak;
+            }
+            else {
+                $streak = 1;
+            }
+        }
+
+        if ($maxStreak > $maxConsecutive) {
+            return "GV {$teacher->name} sẽ dạy {$maxStreak} tiết liên tiếp vào Thứ {$day} (tối đa cho phép: {$maxConsecutive}).";
+        }
+
+        return false;
+    }
+
+    // =========================================================================
+    //  CÁC HÀM KIỂM TRA IN-MEMORY (trên Collection, không query DB)
+    // =========================================================================
+
+    /**
+     * Kiểm tra trùng lịch in-memory.
+     */
+    private function checkConflict(Collection $schedules, $teacher_id, $class_id, $day, $period)
+    {
+        // GV trùng
+        $teacherConflict = $schedules
+            ->where('teacher_id', $teacher_id)
+            ->where('day', $day)
+            ->where('period', $period)
+            ->first();
+
+        if ($teacherConflict) {
             return "Giáo viên này đã có lịch dạy vào Thứ {$day} - Tiết {$period}.";
         }
 
-        // 2. Lớp học đã có môn khác vào cùng Thứ & Tiết?
-        $classConflict = Schedule::where('class_id', $class_id)
+        // Lớp trùng
+        $classConflict = $schedules
+            ->where('class_id', $class_id)
             ->where('day', $day)
-            ->where('period', $period);
+            ->where('period', $period)
+            ->first();
 
-        if ($ignore_schedule_id) {
-            $classConflict->where('id', '!=', $ignore_schedule_id);
-        }
-
-        if ($classConflict->exists()) {
+        if ($classConflict) {
             return "Lớp này đã có môn học vào Thứ {$day} - Tiết {$period}.";
         }
 
@@ -90,101 +288,116 @@ class ScheduleService
     }
 
     /**
-     * Kiểm tra giáo viên có rảnh ở thứ/tiết này không.
+     * Kiểm tra không cho đè lên tiết cố định (Chào cờ, Sinh hoạt).
      */
-    public function checkTeacherAvailability(Teacher $teacher, $day, $period)
+    private function checkFixedPeriodConflict(Collection $schedules, $class_id, $day, $period)
+    {
+        $existing = $schedules
+            ->where('class_id', $class_id)
+            ->where('day', $day)
+            ->where('period', $period)
+            ->first();
+
+        if ($existing) {
+            $subject = Subject::find($existing->subject_id);
+            if ($subject && $this->isFixedSubject($subject)) {
+                return "Tiết {$period} Thứ {$day} là tiết cố định ({$subject->name}), không thể xếp đè lên.";
+            }
+        }
+
+        return false;
+    }
+
+    /**
+     * Kiểm tra apakah môn học là tiết cố định.
+     */
+    public function isFixedSubject(Subject $subject): bool
+    {
+        $name = mb_strtolower($subject->name);
+        return str_contains($name, 'chào cờ')
+            || str_contains($name, 'sinh hoạt');
+    }
+
+    /**
+     * Kiểm tra GV có rảnh không.
+     */
+    private function checkTeacherAvailability(Teacher $teacher, $day, $period)
     {
         if (!$teacher->isAvailable((int)$day, (int)$period)) {
-            return "Giáo viên {$teacher->name} không rảnh vào Thứ {$day} - Tiết {$period}.";
+            return "GV {$teacher->name} không rảnh vào Thứ {$day} - Tiết {$period}.";
         }
         return false;
     }
 
     /**
-     * Kiểm tra số tiết tối đa của môn học trong tuần cho 1 lớp.
+     * Kiểm tra số tiết tối đa của môn học / tuần cho 1 lớp (in-memory).
      */
-    public function checkSubjectWeeklyLimit(Subject $subject, $class_id, $ignore_schedule_id = null)
+    private function checkSubjectWeeklyLimit(Collection $schedules, Subject $subject, $class_id)
     {
-        $query = Schedule::where('subject_id', $subject->id)
-            ->where('class_id', $class_id);
+        $currentCount = $schedules
+            ->where('subject_id', $subject->id)
+            ->where('class_id', $class_id)
+            ->count();
 
-        if ($ignore_schedule_id) {
-            $query->where('id', '!=', $ignore_schedule_id);
-        }
-
-        $currentCount = $query->count();
         $limit = $subject->lessons_per_week ?? 99;
 
         if ($currentCount >= $limit) {
-            return "Môn {$subject->name} đã đủ {$limit} tiết/tuần cho lớp này. Không thể xếp thêm.";
+            return "Môn {$subject->name} đã đủ {$limit} tiết/tuần cho lớp này.";
         }
-
         return false;
     }
 
     /**
-     * Kiểm tra số tiết tối đa của môn học trong ngày cho 1 lớp.
+     * Kiểm tra số tiết tối đa của môn học / ngày cho 1 lớp (in-memory).
      */
-    public function checkSubjectDailyLimit(Subject $subject, $class_id, $day, $ignore_schedule_id = null)
+    private function checkSubjectDailyLimit(Collection $schedules, Subject $subject, $class_id, $day)
     {
-        $query = Schedule::where('subject_id', $subject->id)
+        $currentCount = $schedules
+            ->where('subject_id', $subject->id)
             ->where('class_id', $class_id)
-            ->where('day', $day);
+            ->where('day', $day)
+            ->count();
 
-        if ($ignore_schedule_id) {
-            $query->where('id', '!=', $ignore_schedule_id);
-        }
-
-        $currentCount = $query->count();
         $limit = $subject->max_lessons_per_day ?? 99;
 
         if ($currentCount >= $limit) {
-            return "Môn {$subject->name} đã đạt tối đa {$limit} tiết/ngày (Thứ {$day}) cho lớp này.";
+            return "Môn {$subject->name} đã đạt tối đa {$limit} tiết/ngày (Thứ {$day}).";
         }
-
         return false;
     }
 
     /**
-     * Kiểm tra số tiết tối đa giáo viên dạy trong ngày.
+     * Kiểm tra số tiết tối đa GV / ngày (in-memory).
      */
-    public function checkTeacherDailyLimit(Teacher $teacher, $day, $ignore_schedule_id = null)
+    private function checkTeacherDailyLimit(Collection $schedules, Teacher $teacher, $day)
     {
-        $query = Schedule::where('teacher_id', $teacher->id)
-            ->where('day', $day);
+        $currentCount = $schedules
+            ->where('teacher_id', $teacher->id)
+            ->where('day', $day)
+            ->count();
 
-        if ($ignore_schedule_id) {
-            $query->where('id', '!=', $ignore_schedule_id);
-        }
-
-        $currentCount = $query->count();
         $limit = $teacher->max_periods_per_day ?? 5;
 
         if ($currentCount >= $limit) {
-            return "GV {$teacher->name} đã dạy đủ {$limit} tiết trong Thứ {$day}. Không thể xếp thêm.";
+            return "GV {$teacher->name} đã dạy đủ {$limit} tiết Thứ {$day}.";
         }
-
         return false;
     }
 
     /**
-     * Kiểm tra định mức tiết/tuần của giáo viên.
+     * Kiểm tra định mức tiết/tuần GV (in-memory).
      */
-    public function checkTeacherWeeklyLimit(Teacher $teacher, $ignore_schedule_id = null)
+    private function checkTeacherWeeklyLimit(Collection $schedules, Teacher $teacher)
     {
-        $query = Schedule::where('teacher_id', $teacher->id);
+        $currentCount = $schedules
+            ->where('teacher_id', $teacher->id)
+            ->count();
 
-        if ($ignore_schedule_id) {
-            $query->where('id', '!=', $ignore_schedule_id);
-        }
-
-        $currentCount = $query->count();
         $limit = $teacher->quota ?? 17;
 
         if ($currentCount >= $limit) {
-            return "GV {$teacher->name} đã đạt định mức {$limit} tiết/tuần. Không thể xếp thêm.";
+            return "GV {$teacher->name} đã đạt định mức {$limit} tiết/tuần.";
         }
-
         return false;
     }
 }

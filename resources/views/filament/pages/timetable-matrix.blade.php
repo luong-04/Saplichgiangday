@@ -52,7 +52,6 @@
         letter-spacing: 0.08em;
         margin-bottom: 0.5rem;
     }
-    /* FIX: Ẩn arrow mặc định, dùng 1 arrow SVG duy nhất */
     .form-select {
         width: 100%;
         border: 1px solid rgba(186,230,253,0.6);
@@ -156,6 +155,16 @@
         height: 100%;
         position: relative;
     }
+    /* Tiết cố định */
+    .cell-filled.cell-fixed {
+        background: linear-gradient(135deg, #fef3c7, #fde68a);
+        border-left: 3px solid #f59e0b;
+    }
+    .cell-fixed-badge {
+        position: absolute; top: 2px; left: 4px;
+        font-size: 0.5rem; font-weight: 900; color: #92400e;
+        text-transform: uppercase; letter-spacing: 0.05em;
+    }
     .cell-filled-sub { font-weight: 800; font-size: 0.72rem; color: #0c4a6e; text-transform: uppercase; }
     .cell-filled-tea { font-size: 0.65rem; color: #2563eb; font-weight: 700; font-style: italic; margin-top: 1px; }
     .cell-delete {
@@ -173,6 +182,7 @@
         border: none;
     }
     .cell-filled:hover .cell-delete { opacity: 1; }
+    .cell-fixed:hover .cell-delete { opacity: 0 !important; }
     .cell-delete:hover { background: #ef4444; color: white; }
 
     /* Cell trống cho drop */
@@ -213,8 +223,14 @@
     }
     .btn-save:hover { box-shadow: 0 10px 30px rgba(37,99,235,0.4); transform: translateY(-2px); }
 
-    /* Divider */
     .section-divider { height: 1px; background: linear-gradient(90deg, transparent, rgba(186,230,253,0.5), transparent); margin: 1.5rem 0; }
+
+    /* Badge tiết đôi */
+    .double-badge {
+        display: inline-block; font-size: 0.55rem; background: #dbeafe; color: #1d4ed8;
+        padding: 0.1rem 0.3rem; border-radius: 0.25rem; font-weight: 800;
+        margin-left: 0.25rem; vertical-align: middle;
+    }
 </style>
 
 <div class="matrix-layout">
@@ -262,7 +278,11 @@
                 <select wire:model.live="dragSubjectId" class="form-select">
                     <option value="">── Chọn Môn ──</option>
                     @foreach($subjects as $sub)
-                        <option value="{{ $sub->id }}">{{ $sub->name }}</option>
+                        <option value="{{ $sub->id }}">
+                            {{ $sub->name }}
+                            @if($sub->is_double_period) [Tiết đôi] @endif
+                            ({{ $sub->lessons_per_week ?? '?' }} tiết/tuần)
+                        </option>
                     @endforeach
                 </select>
             </div>
@@ -281,21 +301,27 @@
             <div class="drag-zone {{ ($dragTeacherId && $dragSubjectId) ? '' : 'empty' }}">
                 @if($dragTeacherId && $dragSubjectId)
                     @php
-                        $subName = $subjects->firstWhere('id', $dragSubjectId)?->name ?? '';
+                        $subObj = $subjects->firstWhere('id', $dragSubjectId);
+                        $subName = $subObj?->name ?? '';
+                        $isDouble = $subObj?->is_double_period ?? false;
                         $teaObj = $filteredTeachers->firstWhere('id', $dragTeacherId);
                         $teaName = $teaObj ? ($teaObj->short_code ?: $teaObj->name) : '';
                         $remaining = $teaObj ? $teaObj->remaining_quota : 0;
                     @endphp
                     <div class="drag-card" id="drag-card" draggable="true"
                          ondragstart="event.dataTransfer.setData('text/plain', '{{ $dragTeacherId }}_{{ $dragSubjectId }}')">
-                        <div>📚 {{ $subName }}</div>
+                        <div>📚 {{ $subName }} @if($isDouble)<span class="double-badge">TIẾT ĐÔI</span>@endif</div>
                         <div class="drag-card-sub flex justify-between">
                             <span>👨‍🏫 {{ $teaName }}</span>
                             <span class="text-xs text-blue-500 bg-blue-100 px-1.5 py-0.5 rounded-md">Còn {{ $remaining }}</span>
                         </div>
                     </div>
                     <p style="font-size:0.75rem; color:#94a3b8; text-align:center; margin-top:0.75rem; font-weight:600;">
-                        Kéo thẻ này vào ô trống trong bảng bên phải
+                        @if($isDouble)
+                            Kéo thẻ này vào ô trống — hệ thống sẽ tự động xếp 2 tiết liền
+                        @else
+                            Kéo thẻ này vào ô trống trong bảng bên phải
+                        @endif
                     </p>
                 @else
                     <div class="drag-zone-icon">↕️</div>
@@ -330,25 +356,31 @@
                         <thead>
                             <tr>
                                 <th style="width:2.5rem; padding: 0.5rem 0;">Tiết</th>
-                                @for($d=2; $d<=7; $d++) <th style="padding: 0.5rem 0;">Thứ {{ $d }}</th> @endfor
+                                @for($d=$daysStart; $d<=$daysEnd; $d++) <th style="padding: 0.5rem 0;">Thứ {{ $d }}</th> @endfor
                             </tr>
                         </thead>
                         <tbody>
-                            @for($p=1; $p<=10; $p++)
-                                @if($p==6)
-                                    <tr><td colspan="7" class="lunch-break-m">── Nghỉ trưa ──</td></tr>
+                            @for($p=1; $p<=$periodsPerDay; $p++)
+                                @if($p == $lunchAfterPeriod + 1)
+                                    <tr><td colspan="{{ $daysEnd - $daysStart + 2 }}" class="lunch-break-m">── Nghỉ trưa ──</td></tr>
                                 @endif
                                 <tr>
                                     <td class="cell-period-m">{{ $p }}</td>
-                                    @for($d=2; $d<=7; $d++)
+                                    @for($d=$daysStart; $d<=$daysEnd; $d++)
                                         <td>
                                             @if(isset($matrix[$d][$p]))
-                                                <div class="cell-filled">
-                                                    <div class="cell-filled-sub">{{ $matrix[$d][$p]['subject'] }}</div>
-                                                    <div class="cell-filled-tea">{{ $matrix[$d][$p]['teacher'] }}</div>
-                                                    <button class="cell-delete" 
-                                                        wire:click="deleteSchedule({{ $matrix[$d][$p]['id'] }})" 
-                                                        title="Xóa tiết này">✕</button>
+                                                @php $cell = $matrix[$d][$p]; @endphp
+                                                <div class="cell-filled {{ ($cell['is_fixed'] ?? false) ? 'cell-fixed' : '' }}">
+                                                    @if($cell['is_fixed'] ?? false)
+                                                        <span class="cell-fixed-badge">🔒 Cố định</span>
+                                                    @endif
+                                                    <div class="cell-filled-sub">{{ $cell['subject'] }}</div>
+                                                    <div class="cell-filled-tea">{{ $cell['teacher'] }}</div>
+                                                    @if(!($cell['is_fixed'] ?? false))
+                                                        <button class="cell-delete" 
+                                                            wire:click="deleteSchedule({{ $cell['id'] }})" 
+                                                            title="Xóa tiết này">✕</button>
+                                                    @endif
                                                 </div>
                                             @else
                                                 <div class="cell-empty"

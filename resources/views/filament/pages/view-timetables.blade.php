@@ -266,17 +266,17 @@
                         <thead>
                             <tr>
                                 <th style="width:3.5rem;">Tiết</th>
-                                @for($d=2; $d<=7; $d++) <th>Thứ {{ $d }}</th> @endfor
+                                @for($d=$daysStart; $d<=$daysEnd; $d++) <th>Thứ {{ $d }}</th> @endfor
                             </tr>
                         </thead>
                         <tbody>
-                            @for($p=1; $p<=10; $p++)
-                                @if($p==6) 
-                                    <tr><td colspan="7" class="lunch-break">── Nghỉ trưa ──</td></tr> 
+                            @for($p=1; $p<=$periodsPerDay; $p++)
+                                @if($p == $lunchAfterPeriod + 1) 
+                                    <tr><td colspan="{{ $daysEnd - $daysStart + 2 }}" class="lunch-break">── Nghỉ trưa ──</td></tr> 
                                 @endif
                                 <tr>
                                     <td class="cell-period">{{ $p }}</td>
-                                    @for($d=2; $d<=7; $d++)
+                                    @for($d=$daysStart; $d<=$daysEnd; $d++)
                                         <td>
                                             @if(isset($tkb['data'][$d][$p]))
                                                 <div class="cell-content">

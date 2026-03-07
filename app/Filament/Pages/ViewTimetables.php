@@ -5,9 +5,9 @@ namespace App\Filament\Pages;
 use Filament\Pages\Page;
 use App\Models\ClassRoom;
 use App\Models\Schedule;
+use App\Models\Setting;
 use Maatwebsite\Excel\Facades\Excel;
 use App\Exports\TimetableExport;
-use Illuminate\Support\Facades\Cache;
 
 class ViewTimetables extends Page
 {
@@ -19,10 +19,26 @@ class ViewTimetables extends Page
     public $selectedGrade = '10';
     public $timetables = [];
 
+    // Cấu hình từ Settings
+    public int $periodsPerDay = 10;
+    public int $daysStart = 2;
+    public int $daysEnd = 7;
+    public int $lunchAfterPeriod = 5;
+
     public function mount()
     {
+        try {
+            $this->periodsPerDay = Setting::periodsPerDay();
+            $this->daysStart = Setting::daysStart();
+            $this->daysEnd = Setting::daysEnd();
+            $this->lunchAfterPeriod = Setting::lunchAfterPeriod();
+        }
+        catch (\Exception $e) {
+        }
+
         $this->loadData();
     }
+
     public function updatedSelectedGrade()
     {
         $this->loadData();
@@ -30,7 +46,6 @@ class ViewTimetables extends Page
 
     public function loadData()
     {
-        // Lấy lớp kèm giáo viên chủ nhiệm
         $classes = ClassRoom::with('teacher')
             ->where('grade', $this->selectedGrade)
             ->orderBy('name')
@@ -44,7 +59,6 @@ class ViewTimetables extends Page
         $classIds = $classes->pluck('id');
 
         // 1 query duy nhất lấy TẤT CẢ schedules cho tất cả lớp trong khối
-        // (thay vì N query — 1 per class)
         $allSchedules = Schedule::with(['teacher', 'subject'])
             ->whereIn('class_id', $classIds)
             ->get()

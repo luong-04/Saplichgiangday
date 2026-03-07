@@ -32,6 +32,12 @@ class Teacher extends Model
         return $this->belongsTo(ClassRoom::class , 'homeroom_class_id');
     }
 
+    // Lịch dạy
+    public function schedules()
+    {
+        return $this->hasMany(Schedule::class);
+    }
+
     /**
      * Kiểm tra giáo viên có rảnh ở thứ/tiết này không.
      * Nếu chưa cấu hình availability → mặc định rảnh tất cả.
@@ -50,10 +56,19 @@ class Teacher extends Model
         return in_array($period, $this->availability[$dayKey]);
     }
 
-    // Logic tính số tiết còn lại (Quota - Số tiết đã xếp vào bảng schedules)
+    /**
+     * Tính số tiết còn lại.
+     * Ưu tiên dùng schedules_count nếu đã eager-loaded (fix N+1).
+     */
     public function getRemainingQuotaAttribute()
     {
-        $used = Schedule::where('teacher_id', $this->id)->count();
+        // Nếu đã eager-loaded withCount('schedules')
+        if (isset($this->attributes['schedules_count'])) {
+            $used = $this->attributes['schedules_count'];
+        }
+        else {
+            $used = $this->schedules()->count();
+        }
         return ($this->quota ?? 17) - $used;
     }
 }
