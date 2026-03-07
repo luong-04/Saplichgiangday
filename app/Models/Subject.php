@@ -27,4 +27,18 @@ class Subject extends Model
     {
         return $this->belongsToMany(Teacher::class);
     }
+
+    // Phòng chức năng được phép dùng cho môn này
+    public function rooms()
+    {
+        return $this->belongsToMany(Room::class , 'room_subject');
+    }
+
+    /**
+     * Tiết thực hành (type=2) cần phòng chức năng.
+     */
+    public function requiresRoom(): bool
+    {
+        return $this->type == '2'; // Thực hành
+    }
 }

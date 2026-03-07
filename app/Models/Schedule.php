@@ -15,9 +15,9 @@ class Schedule extends Model
         'subject_id',
         'day',
         'period',
+        'room_id',
     ];
 
-    // Khai báo mối quan hệ
     public function teacher()
     {
         return $this->belongsTo(Teacher::class);
@@ -25,11 +25,16 @@ class Schedule extends Model
 
     public function classRoom()
     {
-        return $this->belongsTo(ClassRoom::class, 'class_id');
+        return $this->belongsTo(ClassRoom::class , 'class_id');
     }
 
     public function subject()
     {
         return $this->belongsTo(Subject::class);
+    }
+
+    public function room()
+    {
+        return $this->belongsTo(Room::class);
     }
 }

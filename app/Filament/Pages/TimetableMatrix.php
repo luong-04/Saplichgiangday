@@ -8,6 +8,7 @@ use App\Models\Subject;
 use App\Models\Teacher;
 use App\Models\Schedule;
 use App\Models\Setting;
+use App\Models\Room;
 use App\Services\ScheduleService;
 use Filament\Notifications\Notification;
 use Illuminate\Support\Facades\Cache;
@@ -23,17 +24,21 @@ class TimetableMatrix extends Page
     public $classes = [];
     public $subjects = [];
     public $teachers = [];
+    public $rooms = [];
 
     public $selectedGrade = null;
     public $selectedClass = null;
 
     public $dragTeacherId = null;
     public $dragSubjectId = null;
+    public $dragRoomId = null;
 
     public $matrix = [];
     public $filteredTeachers = [];
+    public $filteredRooms = [];
+    public $requiresRoom = false;
 
-    // Cấu hình từ Settings
+    // Settings
     public int $periodsPerDay = 10;
     public int $daysStart = 2;
     public int $daysEnd = 7;
@@ -42,16 +47,10 @@ class TimetableMatrix extends Page
     public function mount()
     {
         $this->grades = ClassRoom::select('grade')->distinct()->pluck('grade', 'grade')->toArray();
-
-        // Cache subjects
-        $this->subjects = Cache::remember('all_subjects', 600, function () {
-            return Subject::all();
-        });
-
-        // Load teachers với withCount để fix N+1 cho remaining_quota
+        $this->subjects = Cache::remember('all_subjects', 600, fn() => Subject::all());
         $this->teachers = Teacher::withCount('schedules')->with('subjects')->get();
+        $this->rooms = Room::with('subjects')->get();
 
-        // Load Settings (có try-catch nếu bảng chưa tồn tại)
         try {
             $this->periodsPerDay = Setting::periodsPerDay();
             $this->daysStart = Setting::daysStart();
@@ -59,7 +58,6 @@ class TimetableMatrix extends Page
             $this->lunchAfterPeriod = Setting::lunchAfterPeriod();
         }
         catch (\Exception $e) {
-        // Dùng mặc định
         }
 
         $this->initMatrix();
@@ -85,15 +83,28 @@ class TimetableMatrix extends Page
     {
         $this->initMatrix();
         if ($value) {
-            $schedules = Schedule::with(['teacher', 'subject'])->where('class_id', $value)->get();
-            foreach ($schedules as $sch) {
-                $service = new ScheduleService();
-                $isFixed = $service->isFixedSubject($sch->subject);
+            // Auto-assign tiết cố định
+            $service = new ScheduleService();
+            $class = ClassRoom::find($value);
+            if ($class) {
+                $assigned = $service->autoAssignFixedPeriods($class);
+                if ($assigned > 0) {
+                    Notification::make()
+                        ->title("Đã tự động gán {$assigned} tiết cố định")
+                        ->body('Chào cờ / Sinh hoạt đã được xếp tự động.')
+                        ->success()->send();
+                }
+            }
 
+            // Load schedules
+            $schedules = Schedule::with(['teacher', 'subject', 'room'])->where('class_id', $value)->get();
+            foreach ($schedules as $sch) {
+                $isFixed = $service->isFixedSubject($sch->subject);
                 $this->matrix[$sch->day][$sch->period] = [
                     'id' => $sch->id,
                     'subject' => $sch->subject->name,
                     'teacher' => $sch->teacher->short_code ?? $sch->teacher->name,
+                    'room' => $sch->room ? $sch->room->name : null,
                     'is_fixed' => $isFixed,
                 ];
             }
@@ -101,7 +112,7 @@ class TimetableMatrix extends Page
     }
 
     /**
-     * Xếp lịch — gọi ScheduleService::validate() với ĐẦY ĐỦ ràng buộc.
+     * Xếp lịch với validate đầy đủ.
      */
     public function assignSchedule($day, $period, $teacherId, $subjectId)
     {
@@ -109,7 +120,6 @@ class TimetableMatrix extends Page
             return;
 
         $service = new ScheduleService();
-        // Load tất cả schedules 1 lần vào memory
         $service->loadSchedules();
 
         $subject = Subject::find($subjectId);
@@ -120,67 +130,70 @@ class TimetableMatrix extends Page
             return;
         }
 
-        // Kiểm tra tiết đôi
-        if ($subject->is_double_period) {
-            $result = $service->validateDoublePeriod($teacherId, $this->selectedClass, $subjectId, $day, $period);
+        $roomId = $this->dragRoomId ?: null;
 
+        // Nếu môn cần phòng nhưng chưa chọn
+        if ($subject->requiresRoom() && !$roomId) {
+            Notification::make()
+                ->title('Chưa chọn phòng!')
+                ->body("Môn {$subject->name} là thực hành, cần chọn Phòng chức năng trước khi xếp.")
+                ->danger()->send();
+            return;
+        }
+
+        // Tiết đôi
+        if ($subject->is_double_period) {
+            $result = $service->validateDoublePeriod($teacherId, $this->selectedClass, $subjectId, $day, $period, $roomId);
             if (isset($result['error'])) {
-                Notification::make()
-                    ->title('Lỗi Xếp Tiết Đôi!')
-                    ->body($result['error'])
-                    ->danger()
-                    ->send();
+                Notification::make()->title('Lỗi Tiết Đôi!')->body($result['error'])->danger()->send();
                 return;
             }
 
-            // Tạo cả 2 tiết
             Schedule::create([
                 'teacher_id' => $teacherId,
                 'class_id' => $this->selectedClass,
                 'subject_id' => $subjectId,
                 'day' => $day,
                 'period' => $period,
+                'room_id' => $roomId,
             ]);
-
             Schedule::create([
                 'teacher_id' => $teacherId,
                 'class_id' => $this->selectedClass,
                 'subject_id' => $subjectId,
                 'day' => $day,
                 'period' => $result['second_period'],
+                'room_id' => $roomId,
             ]);
 
             $this->refreshAfterChange();
-            Notification::make()
-                ->title('Đã xếp tiết đôi thành công')
+            Notification::make()->title('Đã xếp tiết đôi thành công')
                 ->body("Tiết {$period} và tiết {$result['second_period']}")
-                ->success()
-                ->send();
+                ->success()->send();
             return;
         }
 
-        // Tiết đơn: gọi validate() tổng thể
-        $error = $service->validate($teacherId, $this->selectedClass, $subjectId, $day, $period);
+        // Tiết đơn
+        $error = $service->validate($teacherId, $this->selectedClass, $subjectId, $day, $period, $roomId);
 
-        if ($error) {
-            Notification::make()
-                ->title('Lỗi Xếp Lịch!')
-                ->body($error)
-                ->danger()
-                ->send();
+        // Subject Spreading trả về cảnh báo (bắt đầu bằng ⚠️) → vẫn cho xếp
+        if ($error && !str_starts_with($error, '⚠️')) {
+            Notification::make()->title('Lỗi Xếp Lịch!')->body($error)->danger()->send();
             return;
         }
 
-        // Lưu vào Database
+        $spreadingWarning = ($error && str_starts_with($error, '⚠️')) ? $error : null;
+
         Schedule::create([
             'teacher_id' => $teacherId,
             'class_id' => $this->selectedClass,
             'subject_id' => $subjectId,
             'day' => $day,
             'period' => $period,
+            'room_id' => $roomId,
         ]);
 
-        // Kiểm tra cảnh báo tiết trống / liên tiếp (không block, chỉ warning)
+        // Warnings
         $service->clearCache();
         $service->loadSchedules();
         $allSchedules = $service->loadSchedules();
@@ -190,30 +203,17 @@ class TimetableMatrix extends Page
 
         $this->refreshAfterChange();
 
-        if ($gapWarning) {
-            Notification::make()
-                ->title('Xếp lịch thành công')
-                ->body($gapWarning)
-                ->warning()
-                ->send();
-        }
-        elseif ($consecutiveWarning) {
-            Notification::make()
-                ->title('Xếp lịch thành công')
-                ->body($consecutiveWarning)
-                ->warning()
-                ->send();
+        $warning = $spreadingWarning ?: $gapWarning ?: $consecutiveWarning;
+        if ($warning) {
+            Notification::make()->title('Xếp lịch thành công')->body($warning)->warning()->send();
         }
         else {
-            Notification::make()
-                ->title('Đã xếp lịch thành công')
-                ->success()
-                ->send();
+            Notification::make()->title('Đã xếp lịch thành công')->success()->send();
         }
     }
 
     /**
-     * Xóa lịch — có bảo vệ tiết cố định.
+     * Xóa lịch — bảo vệ tiết cố định.
      */
     public function deleteSchedule($scheduleId)
     {
@@ -221,29 +221,20 @@ class TimetableMatrix extends Page
         if (!$schedule)
             return;
 
-        // Chặn xóa tiết cố định
         $service = new ScheduleService();
         if ($service->isFixedSubject($schedule->subject)) {
             Notification::make()
                 ->title('Không thể xóa!')
-                ->body("Tiết {$schedule->subject->name} là tiết cố định, không được xóa.")
-                ->danger()
-                ->send();
+                ->body("{$schedule->subject->name} là tiết cố định.")
+                ->danger()->send();
             return;
         }
 
         $schedule->delete();
         $this->refreshAfterChange();
-
-        Notification::make()
-            ->title('Đã xóa tiết học')
-            ->warning()
-            ->send();
+        Notification::make()->title('Đã xóa tiết học')->warning()->send();
     }
 
-    /**
-     * Refresh data sau khi thêm/xóa.
-     */
     private function refreshAfterChange()
     {
         Cache::forget('all_teachers');
@@ -251,18 +242,26 @@ class TimetableMatrix extends Page
         $this->teachers = Teacher::withCount('schedules')->with('subjects')->get();
     }
 
-    /**
-     * Lọc giáo viên khi chọn môn.
-     */
     public function updatedDragSubjectId($value)
     {
         $this->dragTeacherId = null;
+        $this->dragRoomId = null;
+        $this->filteredRooms = [];
+        $this->requiresRoom = false;
+
         if (!$value) {
             $this->filteredTeachers = [];
             return;
         }
 
         $subject = Subject::find($value);
+
+        // Kiểm tra có cần phòng không
+        if ($subject && $subject->requiresRoom()) {
+            $this->requiresRoom = true;
+            $this->filteredRooms = $subject->rooms()->get();
+        }
+
         $name = mb_strtolower($subject->name);
 
         if (str_contains($name, 'sinh hoạt')) {
@@ -274,9 +273,8 @@ class TimetableMatrix extends Page
         }
         else {
             $this->filteredTeachers = Teacher::withCount('schedules')
-                ->whereHas('subjects', function ($q) use ($value) {
-                $q->where('subjects.id', $value);
-            })->get();
+                ->whereHas('subjects', fn($q) => $q->where('subjects.id', $value))
+                ->get();
         }
     }
 
@@ -286,11 +284,6 @@ class TimetableMatrix extends Page
             Notification::make()->title('Chưa chọn lớp!')->danger()->send();
             return;
         }
-
-        Notification::make()
-            ->title('Lưu thành công!')
-            ->body('Thời khóa biểu đã được ghi nhận.')
-            ->success()
-            ->send();
+        Notification::make()->title('Lưu thành công!')->body('Thời khóa biểu đã được ghi nhận.')->success()->send();
     }
 }

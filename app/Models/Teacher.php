@@ -13,15 +13,22 @@ class Teacher extends Model
         'name', 'short_code', 'lookup_code',
         'quota', 'homeroom_class_id',
         'max_periods_per_day', 'availability',
+        'teaching_shifts',
     ];
 
     protected $casts = [
         'availability' => 'array',
+        'teaching_shifts' => 'array',
         'max_periods_per_day' => 'integer',
         'quota' => 'integer',
     ];
 
-    // Một giáo viên có thể dạy nhiều môn
+    /**
+     * Tự động thêm remaining_quota vào JSON/array output
+     * để Livewire không mất giá trị khi dehydrate.
+     */
+    protected $appends = ['remaining_quota'];
+
     public function subjects()
     {
         return $this->belongsToMany(Subject::class);
@@ -32,37 +39,36 @@ class Teacher extends Model
         return $this->belongsTo(ClassRoom::class , 'homeroom_class_id');
     }
 
-    // Lịch dạy
     public function schedules()
     {
         return $this->hasMany(Schedule::class);
     }
 
-    /**
-     * Kiểm tra giáo viên có rảnh ở thứ/tiết này không.
-     * Nếu chưa cấu hình availability → mặc định rảnh tất cả.
-     */
     public function isAvailable(int $day, int $period): bool
     {
         if (empty($this->availability)) {
-            return true; // Chưa cấu hình = rảnh tất cả
+            return true;
         }
-
         $dayKey = (string)$day;
         if (!isset($this->availability[$dayKey])) {
-            return false; // Ngày đó không có trong danh sách rảnh → bận
+            return false;
         }
-
         return in_array($period, $this->availability[$dayKey]);
     }
 
+    public function canTeachShift(string $shift): bool
+    {
+        if (empty($this->teaching_shifts)) {
+            return true;
+        }
+        return in_array($shift, $this->teaching_shifts);
+    }
+
     /**
-     * Tính số tiết còn lại.
-     * Ưu tiên dùng schedules_count nếu đã eager-loaded (fix N+1).
+     * Tính số tiết còn lại. Ưu tiên schedules_count (withCount).
      */
     public function getRemainingQuotaAttribute()
     {
-        // Nếu đã eager-loaded withCount('schedules')
         if (isset($this->attributes['schedules_count'])) {
             $used = $this->attributes['schedules_count'];
         }

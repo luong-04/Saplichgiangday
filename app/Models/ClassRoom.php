@@ -9,19 +9,34 @@ class ClassRoom extends Model
 {
     use HasFactory;
 
-    // 1. Ép sử dụng đúng bảng classes trong database của bạn
     protected $table = 'classes';
 
-    protected $fillable = ['name', 'grade'];
+    protected $fillable = ['name', 'grade', 'lookup_code', 'shift'];
 
-    // 2. Định nghĩa để lấy Giáo viên chủ nhiệm
+    // Giáo viên chủ nhiệm
     public function teacher()
     {
-        return $this->hasOne(Teacher::class, 'homeroom_class_id');
+        return $this->hasOne(Teacher::class , 'homeroom_class_id');
     }
 
     public function schedules()
     {
-        return $this->hasMany(Schedule::class, 'class_id');
+        return $this->hasMany(Schedule::class , 'class_id');
+    }
+
+    /**
+     * Kiểm tra lớp thuộc buổi sáng.
+     */
+    public function isMorning(): bool
+    {
+        return in_array($this->shift, ['morning', 'both']);
+    }
+
+    /**
+     * Kiểm tra lớp thuộc buổi chiều.
+     */
+    public function isAfternoon(): bool
+    {
+        return in_array($this->shift, ['afternoon', 'both']);
     }
 }
