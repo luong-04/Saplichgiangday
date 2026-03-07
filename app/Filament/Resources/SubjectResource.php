@@ -79,6 +79,32 @@ class SubjectResource extends Resource
                 ])
                 ->nullable(),
             ])->columns(2),
+
+            Forms\Components\Section::make('Cấu hình khung chương trình (Tùy chọn)')
+            ->description('Thiết lập số tiết/tuần riêng biệt cho từng khối lớp. Nếu không có, sẽ dùng mặc định ở trên.')
+            ->schema([
+                Forms\Components\Repeater::make('curricula')
+                ->relationship()
+                ->label('Số tiết theo khối')
+                ->schema([
+                    Forms\Components\Select::make('grade')
+                    ->label('Khối lớp')
+                    ->options([
+                        '10' => 'Khối 10',
+                        '11' => 'Khối 11',
+                        '12' => 'Khối 12',
+                    ])
+                    ->required(),
+                    Forms\Components\TextInput::make('lessons_per_week')
+                    ->label('Số tiết/tuần')
+                    ->numeric()
+                    ->required()
+                    ->minValue(1)
+                    ->maxValue(20),
+                ])
+                ->columns(2)
+                ->addActionLabel('Thêm khối lớp'),
+            ]),
         ]);
     }
 

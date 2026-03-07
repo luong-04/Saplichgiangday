@@ -364,8 +364,11 @@ class ScheduleService
 
     private function checkSubjectWeeklyLimit(Collection $schedules, Subject $subject, $class_id)
     {
+        $class = ClassRoom::find($class_id);
+        $curriculum = $class ?\App\Models\Curriculum::where('subject_id', $subject->id)->where('grade', $class->grade)->first() : null;
+        $limit = $curriculum ? $curriculum->lessons_per_week : ($subject->lessons_per_week ?? 99);
+
         $count = $schedules->where('subject_id', $subject->id)->where('class_id', $class_id)->count();
-        $limit = $subject->lessons_per_week ?? 99;
         if ($count >= $limit) {
             return "Môn {$subject->name} đã đủ {$limit} tiết/tuần cho lớp này.";
         }
@@ -404,7 +407,10 @@ class ScheduleService
 
     private function checkSubjectSpreading(Collection $schedules, Subject $subject, $class_id, $day)
     {
-        $lessonsPerWeek = $subject->lessons_per_week ?? 99;
+        $class = ClassRoom::find($class_id);
+        $curriculum = $class ?\App\Models\Curriculum::where('subject_id', $subject->id)->where('grade', $class->grade)->first() : null;
+        $lessonsPerWeek = $curriculum ? $curriculum->lessons_per_week : ($subject->lessons_per_week ?? 99);
+
         if ($lessonsPerWeek < 3)
             return false;
 

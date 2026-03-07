@@ -39,6 +39,16 @@ class Teacher extends Model
         return $this->belongsTo(ClassRoom::class , 'homeroom_class_id');
     }
 
+    public function fixedPeriods()
+    {
+        return $this->hasMany(FixedPeriod::class , 'teacher_id');
+    }
+
+    public function assignments()
+    {
+        return $this->hasMany(TeacherAssignment::class , 'teacher_id');
+    }
+
     public function schedules()
     {
         return $this->hasMany(Schedule::class);
@@ -65,7 +75,27 @@ class Teacher extends Model
     }
 
     /**
-     * Tính số tiết còn lại. Ưu tiên schedules_count (withCount).
+     * Tính tổng số tiết đã phân công.
+     */
+    public function calculateAssignedPeriods(): int
+    {
+        $total = 0;
+        foreach ($this->assignments as $assignment) {
+            $subject = $assignment->subject;
+            $class = $assignment->classRoom;
+            if ($subject && $class) {
+                // Check if there is a curriculum for this grade
+                $curriculum = \App\Models\Curriculum::where('subject_id', $subject->id)
+                    ->where('grade', $class->grade)
+                    ->first();
+                $total += $curriculum ? $curriculum->lessons_per_week : $subject->lessons_per_week;
+            }
+        }
+        return $total;
+    }
+
+    /**
+     * Tính số tiết còn lại (dựa trên đã xếp). Ưu tiên schedules_count (withCount).
      */
     public function getRemainingQuotaAttribute()
     {

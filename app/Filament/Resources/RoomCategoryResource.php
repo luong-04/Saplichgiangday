@@ -20,6 +20,7 @@ class RoomCategoryResource extends Resource
     protected static ?string $navigationIcon = 'heroicon-o-rectangle-group';
     protected static ?string $modelLabel = 'Danh mục Phòng';
     protected static ?string $pluralModelLabel = 'Danh mục Phòng';
+    protected static bool $shouldRegisterNavigation = false;
     protected static ?int $navigationSort = 4;
 
     public static function form(Form $form): Form

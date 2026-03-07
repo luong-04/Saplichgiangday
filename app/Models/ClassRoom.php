@@ -24,6 +24,16 @@ class ClassRoom extends Model
         return $this->hasMany(Schedule::class , 'class_id');
     }
 
+    public function fixedPeriods()
+    {
+        return $this->hasMany(FixedPeriod::class , 'class_id');
+    }
+
+    public function assignments()
+    {
+        return $this->hasMany(TeacherAssignment::class , 'class_id');
+    }
+
     /**
      * Kiểm tra lớp thuộc buổi sáng.
      */

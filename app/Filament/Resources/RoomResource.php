@@ -15,9 +15,10 @@ class RoomResource extends Resource
     protected static ?string $model = Room::class;
 
     protected static ?string $navigationIcon = 'heroicon-o-building-office';
-    protected static ?string $navigationLabel = 'Phòng chức năng';
-    protected static ?string $modelLabel = 'Phòng chức năng';
-    protected static ?string $pluralModelLabel = 'Phòng chức năng';
+    protected static ?string $navigationLabel = 'Phòng học';
+    protected static ?string $modelLabel = 'Phòng học';
+    protected static ?string $pluralModelLabel = 'Danh sách Phòng';
+    protected static ?string $navigationGroup = 'Quản lý Phòng học';
     protected static ?int $navigationSort = 5;
 
     public static function form(Form $form): Form

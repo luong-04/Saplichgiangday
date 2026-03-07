@@ -59,7 +59,11 @@ class AutoScheduleService
             }
 
             foreach ($classes as $class) {
-                $targetLessons = $subject->lessons_per_week;
+                // Xác định số tiết mục tiêu (ưu tiên cấu hình Khung chương trình theo Khối)
+                $curriculum = \App\Models\Curriculum::where('subject_id', $subject->id)
+                    ->where('grade', $class->grade)
+                    ->first();
+                $targetLessons = $curriculum ? $curriculum->lessons_per_week : $subject->lessons_per_week;
                 $currentLessons = Schedule::where('subject_id', $subject->id)
                     ->where('class_id', $class->id)
                     ->count();
@@ -69,12 +73,23 @@ class AutoScheduleService
                 while ($needed > 0) {
                     $scheduled = false;
 
-                    // Cố gắng tìm giáo viên phù hợp nhất (còn nhiều quota nhất)
-                    $teachers = Teacher::whereHas('subjects', function ($q) use ($subject) {
-                        $q->where('subjects.id', $subject->id);
+                    // Lấy giáo viên được phân công đích danh thông qua TeacherAssignment
+                    $assignedTeachers = Teacher::whereHas('assignments', function ($q) use ($subject, $class) {
+                        $q->where('subject_id', $subject->id)
+                            ->where('class_id', $class->id);
                     })->get();
 
-                    // Sắp xếp giáo viên theo số tiết còn lại giảm dần
+                    // Nếu không có ai được phân công đích danh, lấy danh sách giáo viên có dạy môn này
+                    if ($assignedTeachers->isEmpty()) {
+                        $teachers = Teacher::whereHas('subjects', function ($q) use ($subject) {
+                            $q->where('subjects.id', $subject->id);
+                        })->get();
+                    }
+                    else {
+                        $teachers = $assignedTeachers;
+                    }
+
+                    // Sắp xếp giáo viên theo số tiết còn lại giảm dần (để ưu tiên người còn rảnh)
                     $teachers = $teachers->sortByDesc(function ($t) {
                         $assigned = Schedule::where('teacher_id', $t->id)->count();
                         return $t->quota - $assigned;

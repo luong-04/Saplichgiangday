@@ -14,9 +14,9 @@ class Subject extends Model
         'type',
         'lessons_per_week',
         'max_lessons_per_day',
-        'is_double_period',
         'consecutive_periods',
-        'preferred_room_category',
+        'max_periods_per_day',
+        'room_category_id',
     ];
 
     protected $casts = [
@@ -24,6 +24,7 @@ class Subject extends Model
         'lessons_per_week' => 'integer',
         'max_lessons_per_day' => 'integer',
         'consecutive_periods' => 'integer',
+        'max_periods_per_day' => 'integer',
     ];
 
     public function teachers()
@@ -34,7 +35,27 @@ class Subject extends Model
     // Phòng chức năng được phép dùng cho môn này
     public function roomCategory()
     {
-        return $this->belongsTo(RoomCategory::class);
+        return $this->belongsTo(RoomCategory::class , 'room_category_id');
+    }
+
+    public function schedules()
+    {
+        return $this->hasMany(Schedule::class , 'subject_id');
+    }
+
+    public function fixedPeriods()
+    {
+        return $this->hasMany(FixedPeriod::class , 'subject_id');
+    }
+
+    public function curricula()
+    {
+        return $this->hasMany(Curriculum::class , 'subject_id');
+    }
+
+    public function assignments()
+    {
+        return $this->hasMany(TeacherAssignment::class , 'subject_id');
     }
 
     /**
