@@ -9,10 +9,11 @@ class Room extends Model
 {
     use HasFactory;
 
-    protected $fillable = ['name', 'capacity'];
+    protected $fillable = ['name', 'capacity', 'category', 'status'];
 
     protected $casts = [
         'capacity' => 'integer',
+        'status' => 'boolean',
     ];
 
     public function subjects()

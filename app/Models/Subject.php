@@ -15,12 +15,15 @@ class Subject extends Model
         'lessons_per_week',
         'max_lessons_per_day',
         'is_double_period',
+        'consecutive_periods',
+        'preferred_room_category',
     ];
 
     protected $casts = [
         'is_double_period' => 'boolean',
         'lessons_per_week' => 'integer',
         'max_lessons_per_day' => 'integer',
+        'consecutive_periods' => 'integer',
     ];
 
     public function teachers()

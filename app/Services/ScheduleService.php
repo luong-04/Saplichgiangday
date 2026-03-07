@@ -101,44 +101,49 @@ class ScheduleService
     //  TIẾT ĐÔI
     // =====================================================================
 
-    public function validateDoublePeriod($teacher_id, $class_id, $subject_id, $day, $period, $room_id = null, $ignore_schedule_id = null): array
+    public function validateMultiPeriod($teacher_id, $class_id, $subject_id, $day, $period, $room_id = null, $ignore_schedule_id = null): array
     {
         $subject = Subject::find($subject_id);
-        if (!$subject || !$subject->is_double_period) {
-            return ['error' => 'Môn này không phải tiết đôi.'];
+        if (!$subject) {
+            return ['error' => 'Không tìm thấy môn học.'];
+        }
+
+        $consecutive = $subject->consecutive_periods ?? 1;
+        if ($consecutive <= 1) {
+            $e1 = $this->validate($teacher_id, $class_id, $subject_id, $day, $period, $room_id, $ignore_schedule_id);
+            if ($e1)
+                return ['error' => "Tiết $period: $e1"];
+            return ['ok' => true, 'periods' => [$period]];
         }
 
         $lunchAfter = 5;
         $periodsPerDay = 10;
         try {
             $lunchAfter = Setting::lunchAfterPeriod();
-        }
-        catch (\Exception $e) {
-        }
-        try {
             $periodsPerDay = Setting::periodsPerDay();
         }
         catch (\Exception $e) {
         }
 
-        $secondPeriod = $period + 1;
+        $endPeriod = $period + $consecutive - 1;
 
-        if ($period == $lunchAfter) {
-            return ['error' => "Không thể xếp tiết đôi vắt qua giờ nghỉ trưa (tiết $period và $secondPeriod)."];
-        }
-        if ($secondPeriod > $periodsPerDay) {
-            return ['error' => "Tiết $secondPeriod vượt quá số tiết trong ngày ($periodsPerDay)."];
+        if ($endPeriod > $periodsPerDay) {
+            return ['error' => "Tổng số tiết vượt quá giới hạn trong ngày ($periodsPerDay)."];
         }
 
-        $e1 = $this->validate($teacher_id, $class_id, $subject_id, $day, $period, $room_id, $ignore_schedule_id);
-        if ($e1)
-            return ['error' => "Tiết $period: $e1"];
+        if ($period <= $lunchAfter && $endPeriod > $lunchAfter) {
+            return ['error' => "Không thể xếp $consecutive tiết vắt qua giờ nghỉ trưa."];
+        }
 
-        $e2 = $this->validate($teacher_id, $class_id, $subject_id, $day, $secondPeriod, $room_id, $ignore_schedule_id);
-        if ($e2)
-            return ['error' => "Tiết $secondPeriod: $e2"];
+        $periods = [];
+        for ($p = $period; $p <= $endPeriod; $p++) {
+            $e = $this->validate($teacher_id, $class_id, $subject_id, $day, $p, $room_id, $ignore_schedule_id);
+            if ($e)
+                return ['error' => "Tiết $p: $e"];
+            $periods[] = $p;
+        }
 
-        return ['ok' => true, 'second_period' => $secondPeriod];
+        return ['ok' => true, 'periods' => $periods];
     }
 
     // =====================================================================
@@ -425,11 +430,15 @@ class ScheduleService
         return false;
     }
 
-    private function checkRoomConflict(Collection $schedules, $room_id, $day, $period)
+    private function checkRoomConflict(Collection $schedules, $room_id, $day, $period, $class_id = null)
     {
         $room = Room::find($room_id);
         if (!$room)
             return "Không tìm thấy phòng chức năng.";
+
+        if (!$room->status) {
+            return "Phòng {$room->name} đang bảo trì, không thể sử dụng.";
+        }
 
         $roomUsageCount = $schedules
             ->where('room_id', $room_id)
@@ -437,8 +446,15 @@ class ScheduleService
             ->where('period', $period)
             ->count();
 
-        if ($roomUsageCount >= $room->capacity) {
-            return "Phòng {$room->name} đã đầy vào Thứ {$day} - Tiết {$period} (sức chứa: {$room->capacity}).";
+        if ($roomUsageCount >= 1) {
+            return "Phòng {$room->name} đã có lớp học vào Thứ {$day} - Tiết {$period}.";
+        }
+
+        if ($class_id) {
+            $class = ClassRoom::find($class_id);
+            if ($class && $class->student_count > $room->capacity) {
+                return "⚠️ Cảnh báo: Sĩ số lớp {$class->name} ({$class->student_count}) vượt quá sức chứa phòng {$room->name} ({$room->capacity}).";
+            }
         }
 
         return false;

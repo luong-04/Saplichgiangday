@@ -11,7 +11,7 @@ class ClassRoom extends Model
 
     protected $table = 'classes';
 
-    protected $fillable = ['name', 'grade', 'lookup_code', 'shift'];
+    protected $fillable = ['name', 'grade', 'lookup_code', 'shift', 'student_count'];
 
     // Giáo viên chủ nhiệm
     public function teacher()

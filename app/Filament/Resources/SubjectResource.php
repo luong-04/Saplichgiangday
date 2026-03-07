@@ -57,11 +57,27 @@ class SubjectResource extends Resource
                 ->minValue(1)
                 ->maxValue(5)
                 ->required(),
-                Forms\Components\Toggle::make('is_double_period')
-                ->label('Ưu tiên tiết đôi')
-                ->helperText('Ưu tiên xếp 2 tiết liên tiếp (Thể dục, Thực hành)')
-                ->default(false),
-            ])->columns(3),
+                Forms\Components\Select::make('consecutive_periods')
+                ->label('Số tiết liên tiếp')
+                ->helperText('1: Bình thường, 2-4: Tiết dài (Thực hành/Thể dục)')
+                ->options([
+                    1 => '1 tiết',
+                    2 => '2 tiết',
+                    3 => '3 tiết',
+                    4 => '4 tiết',
+                ])
+                ->default(1)
+                ->required(),
+                Forms\Components\Select::make('preferred_room_category')
+                ->label('Loại phòng ưu tiên')
+                ->options([
+                    'Tin học' => 'Tin học',
+                    'Lab Lý' => 'Lab Lý',
+                    'Lab Hóa' => 'Lab Hóa',
+                    'Nhà đa năng' => 'Nhà đa năng',
+                ])
+                ->nullable(),
+            ])->columns(2),
         ]);
     }
 
@@ -94,10 +110,13 @@ class SubjectResource extends Resource
             ->label('Max/ngày')
             ->numeric()
             ->alignCenter(),
-            Tables\Columns\IconColumn::make('is_double_period')
-            ->label('Tiết đôi')
-            ->boolean()
+            Tables\Columns\TextColumn::make('consecutive_periods')
+            ->label('Tiết liền')
+            ->numeric()
             ->alignCenter(),
+            Tables\Columns\TextColumn::make('preferred_room_category')
+            ->label('Phòng ưu tiên')
+            ->searchable(),
         ])
             ->actions([
             Tables\Actions\EditAction::make()->label('Sửa'),

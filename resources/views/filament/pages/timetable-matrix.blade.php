@@ -197,7 +197,7 @@
                     @php
                         $subObj = collect($subjects)->firstWhere('id', $dragSubjectId);
                         $subName = is_array($subObj) ? ($subObj['name'] ?? '') : ($subObj->name ?? '');
-                        $isDouble = is_array($subObj) ? ($subObj['is_double_period'] ?? false) : ($subObj->is_double_period ?? false);
+                        $consecutive = is_array($subObj) ? ($subObj['consecutive_periods'] ?? 1) : ($subObj->consecutive_periods ?? 1);
                         $needsRoom = is_array($subObj) ? (($subObj['type'] ?? '0') == '2') : ($subObj && $subObj->type == '2');
                         $teaObj = collect($filteredTeachers)->firstWhere('id', $dragTeacherId);
                         $teaName = is_array($teaObj) ? (($teaObj['short_code'] ?? '') ?: ($teaObj['name'] ?? '')) : ($teaObj ? ($teaObj->short_code ?: $teaObj->name) : '');
@@ -208,7 +208,7 @@
                     <div class="drag-card" id="drag-card" draggable="true"
                          ondragstart="event.dataTransfer.setData('text/plain', '{{ $dragTeacherId }}_{{ $dragSubjectId }}')">
                         <div>📚 {{ $subName }}
-                            @if($isDouble)<span class="double-badge">TIẾT ĐÔI</span>@endif
+                            @if($consecutive > 1)<span class="double-badge">TIẾT x{{ $consecutive }}</span>@endif
                             @if($needsRoom && $roomObj)<span class="room-badge">🏢 {{ $roomName }}</span>@endif
                         </div>
                         <div class="drag-card-sub" style="display:flex; justify-content:space-between;">
@@ -263,8 +263,21 @@
                                     @for($d=$daysStart; $d<=$daysEnd; $d++)
                                         <td>
                                             @if(isset($matrix[$d][$p]))
-                                                @php $cell = $matrix[$d][$p]; @endphp
+                                                @php 
+                                                    $cell = $matrix[$d][$p]; 
+                                                    $prevCell = ($p > 1 && isset($matrix[$d][$p-1])) ? $matrix[$d][$p-1] : null;
+                                                    
+                                                    $isMoving = false;
+                                                    $currRoomId = $cell['room_id'] ?? null;
+                                                    $prevRoomId = $prevCell ? ($prevCell['room_id'] ?? null) : null;
+                                                    if ($p > 1 && $currRoomId !== $prevRoomId) {
+                                                        $isMoving = true;
+                                                    }
+                                                @endphp
                                                 <div class="cell-filled {{ ($cell['is_fixed'] ?? false) ? 'cell-fixed' : '' }}">
+                                                    @if($isMoving)
+                                                        <div style="font-size: 0.6rem; color: #ef4444; font-weight: bold; margin-bottom: 2px;">🏃 Di chuyển</div>
+                                                    @endif
                                                     @if($cell['is_fixed'] ?? false)
                                                         <span class="cell-fixed-badge">🔒 Cố định</span>
                                                     @endif

@@ -35,6 +35,21 @@ class RoomResource extends Resource
                 ->default(1)
                 ->minValue(1)
                 ->required(),
+                Forms\Components\Select::make('category')
+                ->label('Loại phòng')
+                ->options([
+                    'Học bình thường' => 'Học bình thường',
+                    'Tin học' => 'Tin học',
+                    'Lab Lý' => 'Lab Lý',
+                    'Lab Hóa' => 'Lab Hóa',
+                    'Nhà đa năng' => 'Nhà đa năng',
+                ])
+                ->default('Học bình thường')
+                ->required(),
+                Forms\Components\Toggle::make('status')
+                ->label('Trạng thái hoạt động')
+                ->helperText('Tắt nếu phòng đang bảo trì')
+                ->default(true),
             ])->columns(2),
 
             Forms\Components\Section::make('Môn học được phép sử dụng')
@@ -61,6 +76,13 @@ class RoomResource extends Resource
             ->label('Sức chứa')
             ->suffix(' lớp')
             ->alignCenter(),
+            Tables\Columns\TextColumn::make('category')
+            ->label('Loại phòng')
+            ->searchable()
+            ->badge(),
+            Tables\Columns\IconColumn::make('status')
+            ->label('Hoạt động')
+            ->boolean(),
             Tables\Columns\TextColumn::make('subjects.name')
             ->label('Môn học')
             ->badge()

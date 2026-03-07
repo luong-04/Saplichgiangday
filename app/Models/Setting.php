@@ -71,4 +71,9 @@ class Setting extends Model
     {
         return (int)static::get('max_gap_periods', 2);
     }
+
+    public static function enforceRoomAssignment(): bool
+    {
+        return (bool)static::get('enforce_room_assignment', true);
+    }
 }

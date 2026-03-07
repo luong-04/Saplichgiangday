@@ -131,9 +131,15 @@ class TimetableMatrix extends Page
         }
 
         $roomId = $this->dragRoomId ?: null;
+        $enforce = true;
+        try {
+            $enforce = Setting::enforceRoomAssignment();
+        }
+        catch (\Exception $e) {
+        }
 
         // Nếu môn cần phòng nhưng chưa chọn
-        if ($subject->requiresRoom() && !$roomId) {
+        if ($subject->requiresRoom() && !$roomId && $enforce) {
             Notification::make()
                 ->title('Chưa chọn phòng!')
                 ->body("Môn {$subject->name} là thực hành, cần chọn Phòng chức năng trước khi xếp.")
@@ -141,34 +147,30 @@ class TimetableMatrix extends Page
             return;
         }
 
-        // Tiết đôi
-        if ($subject->is_double_period) {
-            $result = $service->validateDoublePeriod($teacherId, $this->selectedClass, $subjectId, $day, $period, $roomId);
+        // Tiết dài (consecutive_periods)
+        $consecutive = $subject->consecutive_periods ?? 1;
+        if ($consecutive > 1) {
+            $result = $service->validateMultiPeriod($teacherId, $this->selectedClass, $subjectId, $day, $period, $roomId);
             if (isset($result['error'])) {
-                Notification::make()->title('Lỗi Tiết Đôi!')->body($result['error'])->danger()->send();
+                Notification::make()->title('Lỗi Tiết Dài!')->body($result['error'])->danger()->send();
                 return;
             }
 
-            Schedule::create([
-                'teacher_id' => $teacherId,
-                'class_id' => $this->selectedClass,
-                'subject_id' => $subjectId,
-                'day' => $day,
-                'period' => $period,
-                'room_id' => $roomId,
-            ]);
-            Schedule::create([
-                'teacher_id' => $teacherId,
-                'class_id' => $this->selectedClass,
-                'subject_id' => $subjectId,
-                'day' => $day,
-                'period' => $result['second_period'],
-                'room_id' => $roomId,
-            ]);
+            foreach ($result['periods'] as $p) {
+                Schedule::create([
+                    'teacher_id' => $teacherId,
+                    'class_id' => $this->selectedClass,
+                    'subject_id' => $subjectId,
+                    'day' => $day,
+                    'period' => $p,
+                    'room_id' => $roomId,
+                ]);
+            }
 
             $this->refreshAfterChange();
-            Notification::make()->title('Đã xếp tiết đôi thành công')
-                ->body("Tiết {$period} và tiết {$result['second_period']}")
+            $periodStr = implode(', ', $result['periods']);
+            Notification::make()->title("Đã xếp $consecutive tiết thành công")
+                ->body("Các tiết: {$periodStr}")
                 ->success()->send();
             return;
         }
@@ -259,7 +261,15 @@ class TimetableMatrix extends Page
         // Kiểm tra có cần phòng không
         if ($subject && $subject->requiresRoom()) {
             $this->requiresRoom = true;
-            $this->filteredRooms = $subject->rooms()->get();
+            if ($subject->preferred_room_category) {
+                $this->filteredRooms = Room::where('category', $subject->preferred_room_category)->get();
+            }
+            else {
+                $this->filteredRooms = $subject->rooms()->get();
+                if ($this->filteredRooms->isEmpty()) {
+                    $this->filteredRooms = Room::all();
+                }
+            }
         }
 
         $name = mb_strtolower($subject->name);
