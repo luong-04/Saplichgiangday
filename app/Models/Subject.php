@@ -12,5 +12,19 @@ class Subject extends Model
     protected $fillable = [
         'name',
         'type',
+        'lessons_per_week',
+        'max_lessons_per_day',
+        'is_double_period',
     ];
+
+    protected $casts = [
+        'is_double_period' => 'boolean',
+        'lessons_per_week' => 'integer',
+        'max_lessons_per_day' => 'integer',
+    ];
+
+    public function teachers()
+    {
+        return $this->belongsToMany(Teacher::class);
+    }
 }

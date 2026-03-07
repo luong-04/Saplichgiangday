@@ -23,18 +23,45 @@ class SubjectResource extends Resource
     {
         return $form
             ->schema([
-            Forms\Components\TextInput::make('name')
-            ->label('Tên môn học')
-            ->required()
-            ->maxLength(255),
-            Forms\Components\Select::make('type')
-            ->label('Loại môn học')
-            ->options([
-                '0' => 'Văn hóa',
-                '1' => 'Thể dục',
-                '2' => 'Thực hành',
-            ])
-            ->required(),
+            Forms\Components\Section::make('Thông tin môn học')->schema([
+                Forms\Components\TextInput::make('name')
+                ->label('Tên môn học')
+                ->required()
+                ->maxLength(255),
+                Forms\Components\Select::make('type')
+                ->label('Loại môn học')
+                ->options([
+                    '0' => 'Văn hóa',
+                    '1' => 'Thể dục',
+                    '2' => 'Thực hành',
+                ])
+                ->required(),
+            ])->columns(2),
+
+            Forms\Components\Section::make('Cấu hình xếp lịch')
+            ->description('Thiết lập ràng buộc số tiết khi xếp thời khóa biểu')
+            ->schema([
+                Forms\Components\TextInput::make('lessons_per_week')
+                ->label('Số tiết / tuần')
+                ->helperText('Số tiết quy định cho môn này mỗi tuần')
+                ->numeric()
+                ->default(1)
+                ->minValue(1)
+                ->maxValue(20)
+                ->required(),
+                Forms\Components\TextInput::make('max_lessons_per_day')
+                ->label('Tối đa tiết / ngày')
+                ->helperText('Số tiết tối đa môn này trong 1 ngày cho 1 lớp')
+                ->numeric()
+                ->default(1)
+                ->minValue(1)
+                ->maxValue(5)
+                ->required(),
+                Forms\Components\Toggle::make('is_double_period')
+                ->label('Ưu tiên tiết đôi')
+                ->helperText('Ưu tiên xếp 2 tiết liên tiếp (Thể dục, Thực hành)')
+                ->default(false),
+            ])->columns(3),
         ]);
     }
 
@@ -57,6 +84,20 @@ class SubjectResource extends Resource
                 'success' => '1',
                 'warning' => '2',
             ]),
+            Tables\Columns\TextColumn::make('lessons_per_week')
+            ->label('Tiết/tuần')
+            ->numeric()
+            ->alignCenter()
+            ->badge()
+            ->color('info'),
+            Tables\Columns\TextColumn::make('max_lessons_per_day')
+            ->label('Max/ngày')
+            ->numeric()
+            ->alignCenter(),
+            Tables\Columns\IconColumn::make('is_double_period')
+            ->label('Tiết đôi')
+            ->boolean()
+            ->alignCenter(),
         ])
             ->actions([
             Tables\Actions\EditAction::make()->label('Sửa'),
