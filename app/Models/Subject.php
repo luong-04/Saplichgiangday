@@ -12,6 +12,7 @@ class Subject extends Model
     protected $fillable = [
         'name',
         'type',
+        'is_fixed',
         'lessons_per_week',
         'max_lessons_per_day',
         'consecutive_periods',
@@ -20,6 +21,7 @@ class Subject extends Model
     ];
 
     protected $casts = [
+        'is_fixed' => 'boolean',
         'is_double_period' => 'boolean',
         'lessons_per_week' => 'integer',
         'max_lessons_per_day' => 'integer',

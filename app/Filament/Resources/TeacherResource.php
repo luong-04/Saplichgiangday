@@ -20,7 +20,7 @@ class TeacherResource extends Resource
 
     public static function form(Form $form): Form {
         return $form->schema([
-            Forms\Components\Section::make('Thông tin đ?nh danh')->schema([
+            Forms\Components\Section::make('Thông tin định danh')->schema([
                 Forms\Components\TextInput::make('name')->label('Họ tên')->required(),
                 Forms\Components\TextInput::make('short_code')->label('Viết tắt'),
                 Forms\Components\TextInput::make('lookup_code')->label('Mã tra cứu')->required()->unique(ignoreRecord: true),
@@ -28,12 +28,12 @@ class TeacherResource extends Resource
     
             Forms\Components\Section::make('Phân công chuyên môn')->schema([
                 Forms\Components\Select::make('subjects')
-                    ->label('Môn giảng dạy (Ch?n nhi?u)')
+                    ->label('Môn giảng dạy (Chọn nhiều)')
                     ->multiple() 
                     ->relationship('subjects', 'name')
                     ->preload()->required(),
                 Forms\Components\TextInput::make('quota')
-                    ->label('Định mức ti?t/tu?n')->numeric()->default(17)->required(),
+                    ->label('Định mức tiết/tuần')->numeric()->default(17)->required(),
                 Forms\Components\Select::make('homeroom_class_id')
                     ->label('Lớp Chủ nhiệm')
                     ->relationship('homeroomClass', 'name')->preload(),
@@ -48,7 +48,7 @@ class TeacherResource extends Resource
                     ->columns(2),
             ])->columns(3),
 
-            Forms\Components\Section::make('Phân công chi tiết (Tùy ch?n)')->schema([
+            Forms\Components\Section::make('Phân công chi tiết (Tùy chọn)')->schema([
                 Forms\Components\Repeater::make('assignments')
                     ->relationship()
                     ->label('Danh sách phân công Lớp & môn')
@@ -88,7 +88,7 @@ class TeacherResource extends Resource
                             }
                             
                             if ($totalPeriods > $quota) {
-                                $fail("Tổng số tiết phân công (" . $totalPeriods . ") đã vượt quá Định mức (" . $quota . " ti?t).");
+                                $fail("Tổng số tiết phân công (" . $totalPeriods . ") đã vượt quá Định mức (" . $quota . " tiết).");
                             }
                         };
                     }),
@@ -118,7 +118,7 @@ class TeacherResource extends Resource
             Tables\Columns\TextColumn::make('quota')
                 ->label('Định mức')
                 ->numeric()
-                ->suffix(' ti?t/tu?n'),
+                ->suffix(' tiết/tuần'),
 
             Tables\Columns\TextColumn::make('remaining_quota')
                 ->label('Còn lại')

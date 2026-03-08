@@ -4,6 +4,7 @@ namespace App\Filament\Resources;
 
 use App\Filament\Resources\RoomCategoryResource\Pages;
 use App\Models\RoomCategory;
+use App\Models\Subject;
 use Filament\Forms;
 use Filament\Forms\Form;
 use Filament\Resources\Resource;
@@ -19,7 +20,6 @@ class RoomCategoryResource extends Resource
     protected static ?string $modelLabel = 'Danh mục & Phòng chức năng';
     protected static ?string $pluralModelLabel = 'Phòng chức năng';
 
-    // Enable navigation mapping to User requested consolidated UI
     protected static bool $shouldRegisterNavigation = true;
     protected static ?int $navigationSort = 4;
 
@@ -34,12 +34,16 @@ class RoomCategoryResource extends Resource
                 ->label('Tên loại phòng (VD: Thực hành Lý)')
                 ->required()
                 ->maxLength(255),
-                Forms\Components\Select::make('subjects')
+                Forms\Components\CheckboxList::make('subject_ids')
                 ->label('Gán môn học vào loại phòng này')
-                ->multiple()
-                ->relationship('subjects', 'name')
-                ->preload(),
-            ])->columns(2),
+                ->options(fn() => Subject::pluck('name', 'id'))
+                ->columns(2)
+                ->afterStateHydrated(function (Forms\Components\CheckboxList $component, ?RoomCategory $record) {
+            if ($record) {
+                $component->state($record->subjects()->pluck('id')->toArray());
+            }
+        }),
+            ])->columns(1),
 
             Forms\Components\Section::make('Danh sách phòng thuộc loại này')
             ->description('Tạo trực tiếp các phòng cụ thể (VD: Phòng Lý 1, Phòng Lý 2) thuộc danh mục này.')
@@ -85,23 +89,19 @@ class RoomCategoryResource extends Resource
             ->badge()
             ->color('info'),
         ])
-            ->filters([
-            //
-        ])
             ->actions([
             Tables\Actions\EditAction::make(),
-        ])
-            ->bulkActions([
-            Tables\Actions\BulkActionGroup::make([
-                Tables\Actions\DeleteBulkAction::make(),
-            ]),
+            Tables\Actions\DeleteAction::make()
+            ->hidden(fn(RoomCategory $record) => $record->rooms()->exists() || $record->subjects()->exists()),
         ]);
     }
 
     public static function getPages(): array
     {
         return [
-            'index' => Pages\ManageRoomCategories::route('/'),
+            'index' => Pages\ListRoomCategories::route('/'),
+            'create' => Pages\CreateRoomCategory::route('/create'),
+            'edit' => Pages\EditRoomCategory::route('/{record}/edit'),
         ];
     }
 }

@@ -464,7 +464,7 @@ class ScheduleService
             if ($subject && $subject->room_category_id) {
                 if ($room->room_category_id !== $subject->room_category_id) {
                     $categoryName = $subject->roomCategory ? $subject->roomCategory->name : 'đã chọn';
-                    return "Môn {$subject->name} yêu cầu phòng thuộc danh mục '{$categoryName}', nhưng {  $room->name} không phù hợp.";
+                    return "Môn {$subject->name} yêu cầu phòng thuộc danh mục '{$categoryName}', nhưng {$room->name} không phù hợp.";
                 }
             }
         }

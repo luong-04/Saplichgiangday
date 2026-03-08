@@ -32,6 +32,7 @@ class FixedPeriodResource extends Resource
             $daysEnd = Setting::daysEnd();
         }
         catch (\Exception $e) {
+            \Illuminate\Support\Facades\Log::warning('Setting load failed in FixedPeriodResource: ' . $e->getMessage());
         }
 
         $dayOptions = [];

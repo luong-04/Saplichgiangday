@@ -6,6 +6,7 @@ use App\Filament\Resources\SubjectResource\Pages;
 use App\Models\Subject;
 use Filament\Forms;
 use Filament\Forms\Form;
+use Filament\Notifications\Notification;
 use Filament\Resources\Resource;
 use Filament\Tables;
 use Filament\Tables\Table;
@@ -36,6 +37,10 @@ class SubjectResource extends Resource
                     '2' => 'Thực hành',
                 ])
                 ->required(),
+                Forms\Components\Toggle::make('is_fixed')
+                ->label('Tiết cố định')
+                ->helperText('Bật nếu đây là tiết cố định (Chào cờ, Sinh hoạt,...) — sẽ không bị xếp tự động đè lên')
+                ->default(false),
             ])->columns(2),
 
             Forms\Components\Section::make('Cấu hình xếp lịch')
@@ -113,6 +118,14 @@ class SubjectResource extends Resource
         return $table
             ->columns([
             Tables\Columns\TextColumn::make('name')->label('Tên môn')->searchable(),
+            Tables\Columns\IconColumn::make('is_fixed')
+            ->label('Cố định')
+            ->boolean()
+            ->trueIcon('heroicon-o-lock-closed')
+            ->falseIcon('heroicon-o-minus')
+            ->trueColor('danger')
+            ->falseColor('gray')
+            ->alignCenter(),
             Tables\Columns\TextColumn::make('type')
             ->label('Loại môn')
             ->formatStateUsing(fn(string $state): string => match ($state) {
@@ -147,7 +160,8 @@ class SubjectResource extends Resource
         ])
             ->actions([
             Tables\Actions\EditAction::make()->label('Sửa'),
-            Tables\Actions\DeleteAction::make()->label('Xóa'),
+            Tables\Actions\DeleteAction::make()->label('Xóa')
+            ->hidden(fn(Subject $record) => $record->schedules()->exists()),
         ]);
     }
 

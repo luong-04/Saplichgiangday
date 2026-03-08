@@ -81,7 +81,8 @@ class RoomResource extends Resource
         ])
             ->actions([
             Tables\Actions\EditAction::make(),
-            Tables\Actions\DeleteAction::make(),
+            Tables\Actions\DeleteAction::make()
+            ->hidden(fn(Room $record) => $record->schedules()->exists()),
         ]);
     }
 
