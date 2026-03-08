@@ -49,7 +49,7 @@ class SubjectResource extends Resource
                 ->minValue(1)
                 ->maxValue(20)
                 ->required(),
-                Forms\Components\TextInput::make('max_lessons_per_day')
+                Forms\Components\TextInput::make('max_periods_per_day')
                 ->label('Tối đa tiết / ngày')
                 ->helperText('Số tiết tối đa môn này trong 1 ngày cho 1 lớp')
                 ->numeric()
@@ -133,7 +133,7 @@ class SubjectResource extends Resource
             ->alignCenter()
             ->badge()
             ->color('info'),
-            Tables\Columns\TextColumn::make('max_lessons_per_day')
+            Tables\Columns\TextColumn::make('max_periods_per_day')
             ->label('Max/ngày')
             ->numeric()
             ->alignCenter(),

@@ -11,7 +11,13 @@ class ClassRoom extends Model
 
     protected $table = 'classes';
 
-    protected $fillable = ['name', 'grade', 'lookup_code', 'shift', 'student_count'];
+    protected $fillable = ['name', 'grade', 'lookup_code', 'shift', 'student_count', 'default_room_id'];
+
+    // Phòng học mặc định
+    public function defaultRoom()
+    {
+        return $this->belongsTo(Room::class , 'default_room_id');
+    }
 
     // Giáo viên chủ nhiệm
     public function teacher()

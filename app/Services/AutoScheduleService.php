@@ -74,19 +74,16 @@ class AutoScheduleService
                     $scheduled = false;
 
                     // Lấy giáo viên được phân công đích danh thông qua TeacherAssignment
-                    $assignedTeachers = Teacher::whereHas('assignments', function ($q) use ($subject, $class) {
+                    $teachers = Teacher::whereHas('assignments', function ($q) use ($subject, $class) {
                         $q->where('subject_id', $subject->id)
                             ->where('class_id', $class->id);
                     })->get();
 
-                    // Nếu không có ai được phân công đích danh, lấy danh sách giáo viên có dạy môn này
-                    if ($assignedTeachers->isEmpty()) {
-                        $teachers = Teacher::whereHas('subjects', function ($q) use ($subject) {
-                            $q->where('subjects.id', $subject->id);
-                        })->get();
-                    }
-                    else {
-                        $teachers = $assignedTeachers;
+                    // Yêu cầu: Bắt buộc phải có phân công chuyên môn cụ thể (TeacherAssignment)
+                    if ($teachers->isEmpty()) {
+                        $stats['failed']++;
+                        $stats['errors'][] = "Lớp {$class->name} - Môn {$subject->name}: Thiếu {$needed} tiết. Chưa có Giáo viên nào được phân công dạy (Teacher Assignment).";
+                        break;
                     }
 
                     // Sắp xếp giáo viên theo số tiết còn lại giảm dần (để ưu tiên người còn rảnh)
@@ -112,14 +109,24 @@ class AutoScheduleService
                                 ->where('capacity', '>=', $class->student_count)
                                 ->get();
                         }
+                        else if ($class->default_room_id) {
+                            // Mặc định nạp phòng của lớp nếu không yêu cầu phòng chức năng
+                            $defaultRoom = Room::find($class->default_room_id);
+                            if ($defaultRoom) {
+                                $rooms = collect([$defaultRoom]);
+                            }
+                        }
+
+                        // Tính số tiết liền lớn nhất có thể xếp trong lần này
+                        $consecutiveToTry = ($subject->consecutive_periods > 1 && $needed > 1) ? min($needed, $subject->consecutive_periods) : 1;
 
                         foreach ($days as $day) {
                             foreach ($periods as $period) {
                                 foreach ($rooms as $room) {
                                     $roomId = $room ? $room->id : null;
 
-                                    if ($subject->consecutive_periods > 1) {
-                                        $result = $this->validator->validateMultiPeriod($teacher->id, $class->id, $subject->id, $day, $period, $roomId);
+                                    if ($consecutiveToTry > 1) {
+                                        $result = $this->validator->validateMultiPeriod($teacher->id, $class->id, $subject->id, $day, $period, $roomId, null, $consecutiveToTry);
                                         if (isset($result['ok'])) {
                                             foreach ($result['periods'] as $p) {
                                                 Schedule::create([

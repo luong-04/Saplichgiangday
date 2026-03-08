@@ -317,9 +317,19 @@ class TimetableMatrix extends Page
             $this->filteredTeachers = Teacher::withCount('schedules')->get();
         }
         else {
-            $this->filteredTeachers = Teacher::withCount('schedules')
-                ->whereHas('subjects', fn($q) => $q->where('subjects.id', $value))
-                ->get();
+            $assignedTeacherIds = \App\Models\TeacherAssignment::where('class_id', $this->selectedClass)
+                ->where('subject_id', $value)
+                ->pluck('teacher_id');
+
+            if ($assignedTeacherIds->isNotEmpty()) {
+                $this->filteredTeachers = Teacher::withCount('schedules')
+                    ->whereIn('id', $assignedTeacherIds)
+                    ->get();
+            }
+            else {
+                // If no teacher is explicitly assigned, return an empty collection
+                $this->filteredTeachers = collect([]);
+            }
         }
     }
 

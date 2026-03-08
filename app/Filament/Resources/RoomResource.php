@@ -20,6 +20,7 @@ class RoomResource extends Resource
     protected static ?string $pluralModelLabel = 'Danh sách Phòng';
     protected static ?string $navigationGroup = 'Quản lý Phòng học';
     protected static ?int $navigationSort = 5;
+    protected static bool $shouldRegisterNavigation = false;
 
     public static function form(Form $form): Form
     {

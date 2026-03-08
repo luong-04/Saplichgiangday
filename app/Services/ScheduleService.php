@@ -101,14 +101,27 @@ class ScheduleService
     //  TIẾT ĐÔI
     // =====================================================================
 
-    public function validateMultiPeriod($teacher_id, $class_id, $subject_id, $day, $period, $room_id = null, $ignore_schedule_id = null): array
+    public function validateMultiPeriod($teacher_id, $class_id, $subject_id, $day, $period, $room_id = null, $ignore_schedule_id = null, $consecutiveOverride = null): array
     {
         $subject = Subject::find($subject_id);
         if (!$subject) {
             return ['error' => 'Không tìm thấy môn học.'];
         }
 
-        $consecutive = $subject->consecutive_periods ?? 1;
+        $consecutive = $consecutiveOverride ?? $subject->consecutive_periods ?? 1;
+
+        $classSchedulesParams = Schedule::where('class_id', $class_id)->where('day', $day);
+        if ($ignore_schedule_id) {
+            $classSchedulesParams->where('id', '!=', $ignore_schedule_id);
+        }
+        $countDay = $classSchedulesParams->count();
+        $countSubjectDay = $classSchedulesParams->get()->where('subject_id', $subject_id)->count();
+        $limit = $subject->max_periods_per_day ?? $subject->max_lessons_per_day ?? 99;
+
+        if ($countSubjectDay + $consecutive > $limit) {
+            return ['error' => "Môn {$subject->name} đã đạt tối đa {$limit} tiết/ngày (Thứ {$day})."];
+        }
+
         if ($consecutive <= 1) {
             $e1 = $this->validate($teacher_id, $class_id, $subject_id, $day, $period, $room_id, $ignore_schedule_id);
             if ($e1)
@@ -378,7 +391,7 @@ class ScheduleService
     private function checkSubjectDailyLimit(Collection $schedules, Subject $subject, $class_id, $day)
     {
         $count = $schedules->where('subject_id', $subject->id)->where('class_id', $class_id)->where('day', $day)->count();
-        $limit = $subject->max_lessons_per_day ?? 99;
+        $limit = $subject->max_periods_per_day ?? $subject->max_lessons_per_day ?? 99;
         if ($count >= $limit) {
             return "Môn {$subject->name} đã đạt tối đa {$limit} tiết/ngày (Thứ {$day}).";
         }
