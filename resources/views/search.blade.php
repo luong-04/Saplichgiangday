@@ -269,16 +269,17 @@
                                     <thead>
                                         <tr>
                                             <th class="w-20 border-r border-blue-100">Tiết</th>
-                                            @for($d = 2; $d <= 7; $d++)
+                                            @for($d = $daysStart; $d <= $daysEnd; $d++)
                                                 <th class="border-r border-blue-100">Thứ {{ $d }}</th>
                                             @endfor
                                         </tr>
                                     </thead>
                                     <tbody>
-                                        @for($p = 1; $p <= 10; $p++)
-                                            @if($p == 6)
+                                        @php $morningLimit = 5; @endphp
+                                        @for($p = 1; $p <= $periodsPerDay; $p++)
+                                            @if($p == $morningLimit + 1 && $periodsPerDay > $morningLimit)
                                                 <tr>
-                                                    <td colspan="7" class="!py-1.5 text-[10px] font-bold text-slate-400 uppercase tracking-[0.3em] !bg-gradient-to-r from-slate-50 to-slate-100 text-center border-b border-slate-200">
+                                                    <td colspan="{{ $daysEnd - $daysStart + 2 }}" class="!py-1.5 text-[10px] font-bold text-slate-400 uppercase tracking-[0.3em] !bg-gradient-to-r from-slate-50 to-slate-100 text-center border-b border-slate-200">
                                                         ☀ Nghỉ trưa
                                                     </td>
                                                 </tr>
@@ -286,15 +287,22 @@
                                             <tr>
                                                 <td class="border-r border-slate-100 !bg-slate-50/50 p-1">
                                                     <div class="font-extrabold text-sm text-slate-300 italic leading-none">{{ $p }}</div>
-                                                    <div class="text-[8px] font-semibold text-slate-400 uppercase tracking-wider mt-0.5">{{ $p <= 5 ? 'Sáng' : 'Chiều' }}</div>
+                                                    <div class="text-[8px] font-semibold text-slate-400 uppercase tracking-wider mt-0.5">{{ $p <= $morningLimit ? 'Sáng' : 'Chiều' }}</div>
                                                 </td>
-                                                @for($d = 2; $d <= 7; $d++)
-                                                    <td class="h-12 p-0.5">
-                                                        @if(isset($grid[$d][$p]))
-                                                            <div class="cell-filled text-left">
-                                                                <div class="font-bold text-[11px] text-slate-800 leading-tight uppercase tracking-tight">{{ $grid[$d][$p]['subject'] }}</div>
-                                                                <div class="text-[9px] text-blue-600 font-semibold mt-0.5 italic">{{ $grid[$d][$p]['extra'] }}</div>
-                                                            </div>
+                                                @for($d = $daysStart; $d <= $daysEnd; $d++)
+                                                    <td class="h-12 p-0.5 align-top">
+                                                        @if(isset($grid[$d][$p]) && count($grid[$d][$p]) > 0)
+                                                            @foreach($grid[$d][$p] as $item)
+                                                                <div class="cell-filled text-left {{ !$loop->last ? 'mb-1' : '' }} {{ count($grid[$d][$p]) > 1 ? 'border-red-400 bg-red-50' : '' }}">
+                                                                    <div class="font-bold text-[11px] text-slate-800 leading-tight uppercase tracking-tight">{{ $item['subject'] }}</div>
+                                                                    <div class="flex justify-between items-center mt-0.5">
+                                                                        <div class="text-[9px] text-blue-600 font-semibold italic truncate min-w-0 mr-1">{{ $item['extra'] }}</div>
+                                                                        @if($item['room'])
+                                                                            <span class="text-[9px] text-emerald-700 font-bold bg-emerald-100 px-1 rounded flex-shrink-0">{{ $item['room'] }}</span>
+                                                                        @endif
+                                                                    </div>
+                                                                </div>
+                                                            @endforeach
                                                         @else
                                                             <div class="w-full h-full bg-slate-50/30 rounded-md min-h-[40px]"></div>
                                                         @endif

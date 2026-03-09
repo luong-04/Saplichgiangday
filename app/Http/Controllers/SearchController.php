@@ -5,6 +5,8 @@ namespace App\Http\Controllers;
 use Illuminate\Http\Request;
 use App\Models\Teacher;
 use App\Models\ClassRoom;
+use App\Models\Room;
+use App\Models\Setting;
 use App\Models\Schedule;
 use Maatwebsite\Excel\Facades\Excel;
 use App\Exports\TimetableExport;
@@ -24,6 +26,10 @@ class SearchController extends Controller
             'lookup_code' => 'required|string|max:255',
         ]);
 
+        $daysStart = Setting::daysStart();
+        $daysEnd = Setting::daysEnd();
+        $periodsPerDay = Setting::periodsPerDay();
+
         $code = $request->lookup_code;
         $schedules = collect();
         $targetName = '';
@@ -34,7 +40,7 @@ class SearchController extends Controller
         $classRoom = ClassRoom::where('lookup_code', $code)->first();
 
         if ($teacher) {
-            $schedules = Schedule::with(['classRoom', 'subject'])
+            $schedules = Schedule::with(['classRoom', 'subject', 'room'])
                 ->where('teacher_id', $teacher->id)
                 ->orderBy('day')
                 ->orderBy('period')
@@ -43,7 +49,7 @@ class SearchController extends Controller
             $type = 'Giáo viên';
         }
         elseif ($classRoom) {
-            $schedules = Schedule::with(['teacher', 'subject'])
+            $schedules = Schedule::with(['teacher', 'subject', 'room'])
                 ->where('class_id', $classRoom->id)
                 ->orderBy('day')
                 ->orderBy('period')
@@ -58,18 +64,19 @@ class SearchController extends Controller
             return back()->with('error', 'Mã không hợp lệ hoặc không tìm thấy dữ liệu.');
         }
 
-        // Chuyển đổi sang dạng grid [day][period]
+        // Chuyển đổi sang dạng grid [day][period][]
         $grid = [];
         foreach ($schedules as $s) {
-            $grid[$s->day][$s->period] = [
+            $grid[$s->day][$s->period][] = collect([
                 'subject' => $s->subject->name,
                 'extra' => $type === 'Giáo viên'
                 ? ($s->classRoom->name ?? '')
                 : ($s->teacher->short_code ?? $s->teacher->name ?? ''),
-            ];
+                'room' => $s->room->name ?? null,
+            ]);
         }
 
-        return view('search', compact('schedules', 'targetName', 'code', 'type', 'grid', 'gvcn'));
+        return view('search', compact('schedules', 'targetName', 'code', 'type', 'grid', 'gvcn', 'daysStart', 'daysEnd', 'periodsPerDay'));
     }
 
     // Xuất Excel từ trang tra cứu

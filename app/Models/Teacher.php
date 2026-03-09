@@ -13,12 +13,13 @@ class Teacher extends Model
         'name', 'short_code', 'lookup_code',
         'quota', 'homeroom_class_id',
         'max_periods_per_day', 'availability',
-        'teaching_shifts',
+        'teaching_shifts', 'assigned_classes'
     ];
 
     protected $casts = [
         'availability' => 'array',
         'teaching_shifts' => 'array',
+        'assigned_classes' => 'array',
         'max_periods_per_day' => 'integer',
         'quota' => 'integer',
     ];
@@ -75,23 +76,13 @@ class Teacher extends Model
     }
 
     /**
-     * Tính tổng số tiết đã phân công.
+     * Tính tổng số tiết đã phân công (Logic mới dựa vào JSON).
      */
     public function calculateAssignedPeriods(): int
     {
-        $total = 0;
-        foreach ($this->assignments as $assignment) {
-            $subject = $assignment->subject;
-            $class = $assignment->classRoom;
-            if ($subject && $class) {
-                // Check if there is a curriculum for this grade
-                $curriculum = \App\Models\Curriculum::where('subject_id', $subject->id)
-                    ->where('grade', $class->grade)
-                    ->first();
-                $total += $curriculum ? $curriculum->lessons_per_week : $subject->lessons_per_week;
-            }
-        }
-        return $total;
+        // Với logic mới, "assigned_classes" chỉ là mảng ID các lớp giáo viên được phép dạy.
+        // Số tiết đã xếp thực tế được tính bằng getRemainingQuotaAttribute (giới hạn thực tế = số thẻ đã xếp).
+        return $this->schedules()->count();
     }
 
     /**

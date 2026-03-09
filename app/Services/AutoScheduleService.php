@@ -73,11 +73,11 @@ class AutoScheduleService
                 while ($needed > 0) {
                     $scheduled = false;
 
-                    // Lấy giáo viên được phân công đích danh thông qua TeacherAssignment
-                    $teachers = Teacher::whereHas('assignments', function ($q) use ($subject, $class) {
-                        $q->where('subject_id', $subject->id)
-                            ->where('class_id', $class->id);
-                    })->get();
+                    // Lấy giáo viên được phân công đích danh thông qua assigned_classes (JSON) và môn học (Bảng pivot)
+                    // Teacher cần có subject_id trong teacher_subject và class_id trong assigned_classes
+                    $teachers = Teacher::whereHas('subjects', function ($q) use ($subject) {
+                        $q->where('subject_id', $subject->id);
+                    })->whereJsonContains('assigned_classes', (string)$class->id)->get();
 
                     // Yêu cầu: Bắt buộc phải có phân công chuyên môn cụ thể (TeacherAssignment)
                     if ($teachers->isEmpty()) {
