@@ -7,12 +7,14 @@ use Illuminate\Http\Request;
 use App\Models\Teacher;
 use App\Models\Subject;
 use App\Models\ClassRoom;
+use App\Models\TeacherAssignment;
+use App\Models\Schedule;
 
 class TeacherController extends Controller
 {
     public function index(Request $request)
     {
-        $query = Teacher::with(['subjects', 'homeroomClass']);
+        $query = Teacher::with(['subjects', 'homeroomClass', 'assignments']);
 
         if ($request->has('search')) {
             $search = $request->get('search');
@@ -42,11 +44,13 @@ class TeacherController extends Controller
             'lookup_code' => 'required|string|max:255|unique:teachers',
             'quota' => 'required|integer|min:0',
             'max_periods_per_day' => 'required|integer|min:1|max:10',
-            'homeroom_class_id' => 'nullable|exists:class_rooms,id',
+            'homeroom_class_id' => 'nullable|exists:classes,id',
             'subjects' => 'required|array',
             'subjects.*' => 'exists:subjects,id',
             'teaching_shifts' => 'nullable|array',
-            'assigned_classes' => 'nullable|array',
+            'assignments' => 'nullable|array',
+            'assignments.*.class_id' => 'required|exists:classes,id',
+            'assignments.*.subject_id' => 'required|exists:subjects,id',
         ]);
 
         $teacher = Teacher::create([
@@ -57,11 +61,23 @@ class TeacherController extends Controller
             'max_periods_per_day' => $validated['max_periods_per_day'],
             'homeroom_class_id' => $validated['homeroom_class_id'] ?? null,
             'teaching_shifts' => $validated['teaching_shifts'] ?? [],
-            'assigned_classes' => $validated['assigned_classes'] ?? [],
         ]);
 
         if (!empty($validated['subjects'])) {
             $teacher->subjects()->sync($validated['subjects']);
+        }
+
+        // Đồng bộ Phân công giảng dạy (Logic Premium)
+        if ($request->has('assignments')) {
+            foreach ($request->assignments as $assignment) {
+                if (!empty($assignment['class_id']) && !empty($assignment['subject_id'])) {
+                    TeacherAssignment::create([
+                        'teacher_id' => $teacher->id,
+                        'class_id' => $assignment['class_id'],
+                        'subject_id' => $assignment['subject_id']
+                    ]);
+                }
+            }
         }
 
         return redirect()->route('admin.teachers.index')->with('success', 'Thêm giáo viên thành công.');
@@ -76,6 +92,8 @@ class TeacherController extends Controller
             ->orWhere('id', $teacher->homeroom_class_id)
             ->get();
 
+        $teacher->load('assignments');
+
         return view('admin.teachers.edit', compact('teacher', 'subjects', 'classes', 'homeroomClasses'));
     }
 
@@ -87,11 +105,13 @@ class TeacherController extends Controller
             'lookup_code' => 'required|string|max:255|unique:teachers,lookup_code,' . $teacher->id,
             'quota' => 'required|integer|min:0',
             'max_periods_per_day' => 'required|integer|min:1|max:10',
-            'homeroom_class_id' => 'nullable|exists:class_rooms,id',
+            'homeroom_class_id' => 'nullable|exists:classes,id',
             'subjects' => 'required|array',
             'subjects.*' => 'exists:subjects,id',
             'teaching_shifts' => 'nullable|array',
-            'assigned_classes' => 'nullable|array',
+            'assignments' => 'nullable|array',
+            'assignments.*.class_id' => 'required|exists:classes,id',
+            'assignments.*.subject_id' => 'required|exists:subjects,id',
         ]);
 
         $teacher->update([
@@ -102,7 +122,6 @@ class TeacherController extends Controller
             'max_periods_per_day' => $validated['max_periods_per_day'],
             'homeroom_class_id' => $validated['homeroom_class_id'] ?? null,
             'teaching_shifts' => $validated['teaching_shifts'] ?? [],
-            'assigned_classes' => $validated['assigned_classes'] ?? [],
         ]);
 
         if (isset($validated['subjects'])) {
@@ -110,6 +129,20 @@ class TeacherController extends Controller
         }
         else {
             $teacher->subjects()->sync([]);
+        }
+
+        // Đồng bộ Phân công giảng dạy (Logic Premium)
+        $teacher->assignments()->delete();
+        if ($request->has('assignments')) {
+            foreach ($request->assignments as $assignment) {
+                if (!empty($assignment['class_id']) && !empty($assignment['subject_id'])) {
+                    TeacherAssignment::create([
+                        'teacher_id' => $teacher->id,
+                        'class_id' => $assignment['class_id'],
+                        'subject_id' => $assignment['subject_id']
+                    ]);
+                }
+            }
         }
 
         return redirect()->route('admin.teachers.index')->with('success', 'Cập nhật giáo viên thành công.');
@@ -126,5 +159,32 @@ class TeacherController extends Controller
         $teacher->delete();
 
         return redirect()->route('admin.teachers.index')->with('success', 'Xóa giáo viên thành công.');
+    }
+
+    /**
+     * API: Lấy danh sách các tiết bận của giáo viên (Đã dạy + Đã khóa bận).
+     */
+    public function busySlots(Teacher $teacher)
+    {
+        // 1. Tiết đã có lịch dạy
+        $scheduledSlots = $teacher->schedules()->select('day', 'period')->get()->map(function ($sc) {
+            return "{$sc->day}-{$sc->period}";
+        })->toArray();
+
+        // 2. Tiết đã đánh dấu bận trong profile (availability)
+        $unavailableSlots = [];
+        if (!empty($teacher->availability)) {
+            foreach ($teacher->availability as $day => $periods) {
+                if (is_array($periods)) {
+                    foreach ($periods as $p) {
+                        $unavailableSlots[] = "{$day}-{$p}";
+                    }
+                }
+            }
+        }
+
+        return response()->json([
+            'busy' => array_unique(array_merge($scheduledSlots, $unavailableSlots))
+        ]);
     }
 }

@@ -25,7 +25,7 @@
             </select>
             <select name="subject_id" class="px-4 py-2 border border-slate-200 rounded-lg focus:outline-none focus:border-blue-500 bg-slate-50 focus:bg-white text-sm font-medium w-full sm:w-auto" onchange="this.form.submit()">
                 <option value="">Tất cả môn học</option>
-                @foreach ($subjects as $sub)
+                @foreach($subjects as $sub)
                     <option value="{{ $sub->id }}" {{ request('subject_id') == $sub->id ? 'selected' : '' }}>{{ $sub->name }}</option>
                 @endforeach
             </select>
@@ -49,7 +49,7 @@
                 </tr>
             </thead>
             <tbody class="divide-y divide-slate-100">
-                @forelse ($curricula as $curriculum)
+                @forelse($curricula as $curriculum)
                 <tr class="hover:bg-slate-50/50 transition-colors">
                     <td class="px-6 py-4">
                         <span class="inline-flex items-center justify-center w-8 h-8 rounded-full bg-blue-100 text-blue-700 font-extrabold text-xs">

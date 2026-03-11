@@ -56,7 +56,7 @@
                 <select id="default_room_id" name="default_room_id"
                     class="w-full px-3 py-2 border @error('default_room_id') border-red-500 @else border-slate-200 @enderror rounded-lg focus:outline-none focus:border-blue-500 bg-slate-50 focus:bg-white transition-colors">
                     <option value="">-- Không xếp phòng cố định --</option>
-                    @foreach ($rooms as $room)
+                    @foreach($rooms as $room)
                         <option value="{{ $room->id }}" {{ old('default_room_id') == $room->id ? 'selected' : '' }}>
                             Phòng {{ $room->name }} (Sức chứa: {{ $room->capacity }})
                         </option>

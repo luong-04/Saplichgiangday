@@ -47,7 +47,7 @@
                 <label class="block text-sm font-bold text-slate-700 mb-2">Chọn Lớp học</label>
                 <select name="class_id" id="class_id" class="w-full px-3 py-2.5 bg-slate-50 border border-slate-200 rounded-lg focus:outline-none focus:border-blue-500 focus:bg-white text-sm font-medium transition-colors">
                     <option value="">-- Chọn Lớp --</option>
-                    @foreach ($classes as $c)
+                    @foreach($classes as $c)
                         <option value="{{ $c->id }}" {{ ($type === 'class' && $id == $c->id) ? 'selected' : '' }}>{{ $c->name }} (Sĩ số: {{ $c->student_count }})</option>
                     @endforeach
                 </select>
@@ -57,7 +57,7 @@
                 <label class="block text-sm font-bold text-slate-700 mb-2">Chọn Giáo viên</label>
                 <select name="teacher_id" id="teacher_id" class="w-full px-3 py-2.5 bg-slate-50 border border-slate-200 rounded-lg focus:outline-none focus:border-blue-500 focus:bg-white text-sm font-medium transition-colors">
                     <option value="">-- Chọn Giáo viên --</option>
-                    @foreach ($teachers as $t)
+                    @foreach($teachers as $t)
                         <option value="{{ $t->id }}" {{ ($type === 'teacher' && $id == $t->id) ? 'selected' : '' }}>{{ $t->name }} ({{ $t->short_code ?? $t->lookup_code }})</option>
                     @endforeach
                 </select>
@@ -71,57 +71,64 @@
 </div>
 
 @if($selectedName)
-    <div class="content-card overflow-hidden print-container bg-white">
-        <!-- Header cho bản In -->
-        <div class="p-6 border-b border-slate-100 flex justify-between items-center bg-blue-50/50 print:bg-white print:border-b-2 print:border-black">
-            <div class="print-header">
-                <h1 class="text-2xl print:text-xl font-extrabold text-blue-900 tracking-tight uppercase print:text-black">THỜI KHÓA BIỂU {{ $selectedName }}</h1>
-                <p class="text-sm text-blue-700 font-semibold mt-1 print:text-black">Năm học: {{ \App\Models\Setting::get('school_year', '2023 - 2024') }} | Áp dụng từ: ...../...../.......</p>
+    <div class="content-card overflow-hidden print-container bg-white shadow-xl border-slate-200">
+        <!-- Header cho bản In (Chuyên nghiệp) -->
+        <div class="p-8 border-b-2 border-slate-800 print:p-0 print:border-none">
+            <div class="flex flex-col md:flex-row justify-between items-start md:items-center gap-6 mb-8 print:mb-4">
+                <div class="text-center md:text-left flex-1">
+                    <h3 class="text-sm font-bold text-slate-500 uppercase tracking-widest print:text-xs">SỞ GIÁO DỤC VÀ ĐÀO TẠO</h3>
+                    <h2 class="text-lg font-black text-slate-800 uppercase print:text-sm">{{ \App\Models\Setting::get('school_name', 'TRƯỜNG THPT CHUYÊN ...') }}</h2>
+                    <div class="w-20 h-0.5 bg-slate-300 mt-2 mx-auto md:mx-0"></div>
+                </div>
+                <div class="text-center md:text-right flex-1">
+                    <h3 class="text-sm font-bold text-slate-500 uppercase tracking-widest print:text-xs">CỘNG HÒA XÃ HỘI CHỦ NGHĨA VIỆT NAM</h3>
+                    <h2 class="text-sm font-black text-slate-800 print:text-[10px]">Độc lập - Tự do - Hạnh phúc</h2>
+                    <div class="w-32 h-0.5 bg-slate-300 mt-2 mx-auto md:ml-auto"></div>
+                </div>
             </div>
-            <div class="w-16 h-16 rounded-xl bg-white border border-blue-100 flex items-center justify-center shadow-sm print:hidden">
-                <svg class="w-8 h-8 text-blue-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"/></svg>
+
+            <div class="text-center mb-6">
+                <h1 class="text-3xl font-black text-blue-900 tracking-tighter uppercase print:text-2xl print:text-black">THỜI KHÓA BIỂU {{ $type === 'class' ? 'LỚP' : 'GIÁO VIÊN' }}: {{ $selectedName }}</h1>
+                <p class="text-base text-slate-600 font-bold mt-2 print:text-sm">Năm học: {{ \App\Models\Setting::get('school_year', '2025-2026') }} | Áp dụng từ ngày: {{ date('d/m/Y') }}</p>
             </div>
         </div>
         
-        <div class="p-6 print:p-0">
-            <table class="w-full border-collapse text-sm print:text-xs">
+        <div class="p-8 print:p-0">
+            <table class="w-full border-collapse border-2 border-slate-800 print:border-black">
                 <thead>
-                    <tr>
-                        <th class="border-2 border-slate-200 print:border-black bg-slate-50 print:bg-gray-100 p-3 w-16 text-center text-slate-700 font-bold print:text-black uppercase">Buổi</th>
-                        <th class="border-2 border-slate-200 print:border-black bg-slate-50 print:bg-gray-100 p-3 w-16 text-center text-slate-700 font-bold print:text-black uppercase">Tiết</th>
+                    <tr class="bg-slate-800 text-white print:bg-gray-100 print:text-black">
+                        <th class="border border-slate-600 print:border-black p-3 w-16 text-center font-black uppercase text-xs">Ca</th>
+                        <th class="border border-slate-600 print:border-black p-3 w-12 text-center font-black uppercase text-xs">Tiết</th>
                         @for($d = $daysStart; $d <= $daysEnd; $d++)
-                            <th class="border-2 border-slate-200 print:border-black bg-slate-800 text-white print:bg-gray-200 print:text-black p-3 text-center font-bold text-base print:text-sm uppercase tracking-wider w-1/6">Thứ {{ $d }}</th>
+                            <th class="border border-slate-600 print:border-black p-3 text-center font-black text-sm uppercase tracking-wider w-1/6">Thứ {{ $d }}</th>
                         @endfor
                     </tr>
                 </thead>
                 <tbody>
                     <!-- Sáng -->
-                    @php $morningLimit = 5; @endphp
+                    @php $morningLimit = \App\Models\Setting::lunchAfterPeriod(); @endphp
                     @for($p = 1; $p <= $morningLimit; $p++)
-                    <tr>
+                    <tr class="h-20 print:h-16">
                         @if($p == 1)
-                            <td rowspan="{{ $morningLimit }}" class="border-2 border-slate-200 print:border-black text-center font-black text-amber-700 bg-amber-50 print:bg-white align-middle print:text-black" style="writing-mode: vertical-rl; text-orientation: upright; letter-spacing: 0.2em;">SÁNG</td>
+                            <td rowspan="{{ $morningLimit }}" class="border border-slate-300 print:border-black text-center font-black text-slate-700 bg-slate-50 print:bg-white align-middle" style="writing-mode: vertical-rl; text-orientation: upright;">SÁNG</td>
                         @endif
-                        <td class="border-2 border-slate-200 print:border-black text-center font-bold text-slate-500 bg-slate-50 print:bg-white print:text-black">{{ $p }}</td>
+                        <td class="border border-slate-300 print:border-black text-center font-black text-slate-400 bg-slate-50/50 print:bg-white">{{ $p }}</td>
                         @for($d = $daysStart; $d <= $daysEnd; $d++)
-                            @php 
-                                $schedules = $timetableData[$d][$p] ?? []; 
-                            @endphp
-                            <td class="border-2 border-slate-200 print:border-black p-2 align-top transition-colors {{ count($schedules) > 1 ? 'bg-red-50' : 'hover:bg-blue-50/30 print:bg-white' }}">
-                                @foreach ($schedules as $sc)
-                                    <div class="flex flex-col h-full bg-white print:bg-transparent rounded border border-slate-100 print:border-0 p-1.5 shadow-sm print:shadow-none {{ !$loop->last ? 'mb-2' : '' }} {{ count($schedules) > 1 ? 'border-red-300' : '' }}">
-                                        <div class="font-bold text-indigo-900 print:text-black text-sm print:text-xs text-center mb-1 line-clamp-2">
+                            @php $schedules = $timetableData[$d][$p] ?? []; @endphp
+                            <td class="border border-slate-300 print:border-black p-2 align-middle text-center relative {{ count($schedules) > 1 ? 'bg-red-50' : '' }}">
+                                @foreach($schedules as $sc)
+                                    <div class="flex flex-col justify-center">
+                                        <div class="font-black text-slate-800 text-sm print:text-xs leading-tight">
                                             {{ $sc->subject->name }}
                                         </div>
-                                        <div class="mt-auto flex justify-between items-center text-[10px] sm:text-xs">
+                                        <div class="text-[10px] font-bold text-slate-500 mt-1 uppercase">
                                             @if($type === 'class')
-                                                <span class="text-slate-600 font-medium bg-slate-100 px-1 rounded truncate max-w-[60%]">{{ $sc->teacher->short_name ?? $sc->teacher->name }}</span>
+                                                {{ $sc->teacher->short_code ?? $sc->teacher->name }}
                                             @else
-                                                <span class="text-emerald-700 font-bold bg-emerald-100 px-1 rounded">{{ $sc->classRoom->name }}</span>
+                                                Lớp {{ $sc->classRoom->name }}
                                             @endif
-                                            
                                             @if($sc->room_id)
-                                                <span class="text-purple-700 font-bold bg-purple-100 px-1.5 rounded">{{ $sc->room->name }}</span>
+                                                <span class="mx-1">•</span> P. {{ $sc->room->name }}
                                             @endif
                                         </div>
                                     </div>
@@ -131,50 +138,62 @@
                     </tr>
                     @endfor
 
-                    <!-- Chiều -->
-                    @php $afternoonLimit = $periodsPerDay; @endphp
-                    @if($afternoonLimit > $morningLimit)
-                        <!-- Dòng phân cách nghỉ trưa -->
-                        <tr>
-                            <td colspan="{{ $daysEnd - $daysStart + 3 }}" class="border-y-4 border-slate-300 print:border-black bg-slate-100 print:bg-gray-100 py-1 text-center text-[10px] font-bold text-slate-400 uppercase tracking-[0.5em]">Giờ nghỉ trưa</td>
-                        </tr>
+                    <tr class="h-4 bg-slate-100 print:bg-gray-100">
+                        <td colspan="{{ $daysEnd - $daysStart + 3 }}" class="border border-slate-300 print:border-black text-[8px] font-black text-slate-400 text-center uppercase tracking-[1em]">Nghỉ trưa</td>
+                    </tr>
 
-                        @for($p = $morningLimit + 1; $p <= $afternoonLimit; $p++)
-                        <tr>
-                            @if($p == $morningLimit + 1)
-                                <td rowspan="{{ $afternoonLimit - $morningLimit }}" class="border-2 border-slate-200 print:border-black text-center font-black text-indigo-700 bg-indigo-50 print:bg-white align-middle print:text-black" style="writing-mode: vertical-rl; text-orientation: upright; letter-spacing: 0.2em;">CHIỀU</td>
-                            @endif
-                            <td class="border-2 border-slate-200 print:border-black text-center font-bold text-slate-500 bg-slate-50 print:bg-white print:text-black">{{ $p }}</td>
-                            @for($d = $daysStart; $d <= $daysEnd; $d++)
-                                @php 
-                                    $schedules = $timetableData[$d][$p] ?? []; 
-                                @endphp
-                                <td class="border-2 border-slate-200 print:border-black p-2 align-top transition-colors {{ count($schedules) > 1 ? 'bg-red-50' : 'hover:bg-blue-50/30 print:bg-white' }}">
-                                    @foreach ($schedules as $sc)
-                                        <div class="flex flex-col h-full bg-white print:bg-transparent rounded border border-slate-100 print:border-0 p-1.5 shadow-sm print:shadow-none {{ !$loop->last ? 'mb-2' : '' }} {{ count($schedules) > 1 ? 'border-red-300' : '' }}">
-                                            <div class="font-bold text-indigo-900 print:text-black text-sm print:text-xs text-center mb-1 line-clamp-2">
-                                                {{ $sc->subject->name }}
-                                            </div>
-                                            <div class="mt-auto flex justify-between items-center text-[10px] sm:text-xs">
-                                                @if($type === 'class')
-                                                    <span class="text-slate-600 font-medium bg-slate-100 px-1 rounded truncate max-w-[60%]">{{ $sc->teacher->short_name ?? $sc->teacher->name }}</span>
-                                                @else
-                                                    <span class="text-emerald-700 font-bold bg-emerald-100 px-1 rounded">{{ $sc->classRoom->name }}</span>
-                                                @endif
-                                                
-                                                @if($sc->room_id)
-                                                    <span class="text-purple-700 font-bold bg-purple-100 px-1.5 rounded">{{ $sc->room->name }}</span>
-                                                @endif
-                                            </div>
+                    <!-- Chiều -->
+                    @php $afternoonLimit = \App\Models\Setting::periodsPerDay(); @endphp
+                    @for($p = $morningLimit + 1; $p <= $afternoonLimit; $p++)
+                    <tr class="h-20 print:h-16">
+                        @if($p == $morningLimit + 1)
+                            <td rowspan="{{ $afternoonLimit - $morningLimit }}" class="border border-slate-300 print:border-black text-center font-black text-slate-700 bg-slate-50 print:bg-white align-middle" style="writing-mode: vertical-rl; text-orientation: upright;">CHIỀU</td>
+                        @endif
+                        <td class="border border-slate-300 print:border-black text-center font-black text-slate-400 bg-slate-50/50 print:bg-white">{{ $p }}</td>
+                        @for($d = $daysStart; $d <= $daysEnd; $d++)
+                            @php $schedules = $timetableData[$d][$p] ?? []; @endphp
+                            <td class="border border-slate-300 print:border-black p-2 align-middle text-center relative {{ count($schedules) > 1 ? 'bg-red-50' : '' }}">
+                                @foreach($schedules as $sc)
+                                    <div class="flex flex-col justify-center">
+                                        <div class="font-black text-slate-800 text-sm print:text-xs leading-tight">
+                                            {{ $sc->subject->name }}
                                         </div>
-                                    @endforeach
-                                </td>
-                            @endfor
-                        </tr>
+                                        <div class="text-[10px] font-bold text-slate-500 mt-1 uppercase">
+                                            @if($type === 'class')
+                                                {{ $sc->teacher->short_code ?? $sc->teacher->name }}
+                                            @else
+                                                Lớp {{ $sc->classRoom->name }}
+                                            @endif
+                                            @if($sc->room_id)
+                                                <span class="mx-1">•</span> P. {{ $sc->room->name }}
+                                            @endif
+                                        </div>
+                                    </div>
+                                @endforeach
+                            </td>
                         @endfor
-                    @endif
+                    </tr>
+                    @endfor
                 </tbody>
             </table>
+
+            <!-- Khu vực chữ ký -->
+            <div class="mt-12 hidden print:grid grid-cols-2 gap-8 text-center">
+                <div class="flex flex-col items-center">
+                    <p class="text-sm font-bold uppercase mb-20 text-black">NGƯỜI LẬP BIỂU</p>
+                    <p class="text-sm font-black text-black">(Ký và ghi rõ họ tên)</p>
+                </div>
+                <div class="flex flex-col items-center">
+                    <p class="text-sm font-bold uppercase mb-4 text-black">HIỆU TRƯỞNG</p>
+                    <p class="text-xs italic mb-16 text-black">(Ký tên và đóng dấu)</p>
+                    <p class="text-sm font-black text-black">{{ \App\Models\Setting::get('principal_name', '..........................................') }}</p>
+                </div>
+            </div>
+            
+            <div class="mt-8 text-[10px] text-slate-400 font-medium italic print:mt-12">
+                * Ghi chú: Thời khóa biểu có thể thay đổi tùy theo tình hình thực tế của nhà trường.
+                <br>In lúc: {{ date('H:i d/m/Y') }} bởi Hệ thống Quản lý TKB Smart-Schedule.
+            </div>
         </div>
     </div>
 @else

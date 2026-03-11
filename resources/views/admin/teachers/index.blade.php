@@ -36,7 +36,7 @@
                 </tr>
             </thead>
             <tbody class="divide-y divide-slate-100">
-                @forelse ($teachers as $teacher)
+                @forelse($teachers as $teacher)
                 <tr class="hover:bg-slate-50/50 transition-colors">
                     <td class="px-6 py-4">
                         <div class="font-bold text-slate-800">{{ $teacher->name }}</div>

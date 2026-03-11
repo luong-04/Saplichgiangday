@@ -26,7 +26,7 @@
             <select name="room_category_id" class="px-4 py-2 border border-slate-200 rounded-lg focus:outline-none focus:border-blue-500 bg-slate-50 focus:bg-white text-sm font-medium w-full sm:w-auto" onchange="this.form.submit()">
                 <option value="">Tất cả loại phòng</option>
                 <option value="none" {{ request('room_category_id') === 'none' ? 'selected' : '' }}>Chưa phân loại</option>
-                @foreach ($categories as $cat)
+                @foreach($categories as $cat)
                     <option value="{{ $cat->id }}" {{ request('room_category_id') == $cat->id ? 'selected' : '' }}>{{ $cat->name }}</option>
                 @endforeach
             </select>
@@ -49,7 +49,7 @@
                 </tr>
             </thead>
             <tbody class="divide-y divide-slate-100">
-                @forelse ($rooms as $room)
+                @forelse($rooms as $room)
                 <tr class="hover:bg-slate-50/50 transition-colors">
                     <td class="px-6 py-4">
                         <div class="font-bold text-slate-800 text-lg">Phòng {{ $room->name }}</div>

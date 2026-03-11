@@ -40,7 +40,7 @@
                     <select id="room_category_id" name="room_category_id"
                         class="w-full px-3 py-2 border @error('room_category_id') border-red-500 @else border-slate-200 @enderror rounded-lg focus:outline-none focus:border-blue-500 bg-slate-50 focus:bg-white transition-colors">
                         <option value="">-- Phòng học thông thường --</option>
-                        @foreach ($categories as $cat)
+                        @foreach($categories as $cat)
                             <option value="{{ $cat->id }}" {{ old('room_category_id') == $cat->id ? 'selected' : '' }}>
                                 {{ $cat->name }}
                             </option>

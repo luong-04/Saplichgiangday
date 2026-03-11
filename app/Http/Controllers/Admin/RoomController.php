@@ -6,12 +6,14 @@ use App\Http\Controllers\Controller;
 use Illuminate\Http\Request;
 use App\Models\Room;
 use App\Models\RoomCategory;
+use App\Models\Schedule;
+use App\Models\Subject;
 
 class RoomController extends Controller
 {
     public function index(Request $request)
     {
-        $query = Room::with('category');
+        $query = Room::with('roomCategory');
 
         if ($request->has('search')) {
             $search = $request->get('search');
@@ -73,5 +75,42 @@ class RoomController extends Controller
 
         $room->delete();
         return redirect()->route('admin.rooms.index')->with('success', 'Xóa phòng học thành công.');
+    }
+
+    /**
+     * API: Lấy danh sách phòng khả dụng cho một tiết học cụ thể.
+     */
+    public function availableRooms(Request $request)
+    {
+        $day = $request->day;
+        $period = $request->period;
+        $subjectId = $request->subject_id;
+
+        $subject = Subject::findOrFail($subjectId);
+        $categoryId = $subject->room_category_id;
+
+        $query = Room::with('roomCategory')->where('status', true);
+
+        // Lọc theo loại phòng nếu môn học yêu cầu
+        if ($categoryId) {
+            $query->where('room_category_id', $categoryId);
+        }
+
+        // Loại bỏ các phòng đã bị chiếm tại thời điểm này
+        $occupiedRoomIds = Schedule::where('day', $day)
+            ->where('period', $period)
+            ->pluck('room_id')
+            ->filter()
+            ->toArray();
+
+        $rooms = $query->whereNotIn('id', $occupiedRoomIds)->get();
+
+        return response()->json($rooms->map(function ($room) {
+            return [
+                'id' => $room->id,
+                'name' => $room->name,
+                'category_name' => $room->roomCategory->name ?? 'Mặc định'
+            ];
+        }));
     }
 }

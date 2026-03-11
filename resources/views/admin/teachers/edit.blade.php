@@ -67,7 +67,7 @@
                         <select id="homeroom_class_id" name="homeroom_class_id"
                             class="w-full px-3 py-2 border @error('homeroom_class_id') border-red-500 @else border-slate-200 @enderror rounded-lg focus:outline-none focus:border-blue-500 bg-slate-50 focus:bg-white transition-colors">
                             <option value="">-- Không chủ nhiệm --</option>
-                            @foreach ($homeroomClasses as $class)
+                            @foreach($homeroomClasses as $class)
                                 <option value="{{ $class->id }}" {{ old('homeroom_class_id', $teacher->homeroom_class_id) == $class->id ? 'selected' : '' }}>
                                     Lớp {{ $class->name }}
                                 </option>
@@ -104,7 +104,7 @@
                         <div class="bg-slate-50 p-3 rounded-lg border @error('subjects') border-red-500 @else border-slate-200 @enderror h-48 overflow-y-auto">
                             <div class="grid grid-cols-2 gap-2">
                                 @php $cachedSubjects = old('subjects', $teacher->subjects->pluck('id')->toArray()); @endphp
-                                @forelse ($subjects as $subject)
+                                @forelse($subjects as $subject)
                                     <label class="flex items-center gap-2 cursor-pointer p-1.5 hover:bg-slate-100 rounded transition-colors">
                                         <input type="checkbox" name="subjects[]" value="{{ $subject->id }}" class="w-4 h-4 text-blue-600 rounded" {{ in_array($subject->id, $cachedSubjects) ? 'checked' : '' }}>
                                         <span class="text-sm font-medium text-slate-700">{{ $subject->name }}</span>
@@ -117,24 +117,51 @@
                         @error('subjects')<p class="text-xs text-red-500 mt-1 font-medium">{{ $message }}</p>@enderror
                     </div>
 
-                    <div>
-                        <label class="block text-sm font-bold text-slate-700 mb-2">Chỉ định Lớp giảng dạy (Tùy chọn)</label>
-                        <p class="text-[11px] text-slate-500 mb-2 leading-relaxed">Khi xếp Ma trận TKB, ở các lớp được chọn, danh sách GV sẽ tự động ưu tiên hiển thị giáo viên này. Có thể chọn nhiều lớp.</p>
+                    <div x-data="{ 
+                        assignments: @js($teacher->assignments->map(fn($a) => ['class_id' => $a->class_id, 'subject_id' => $a->subject_id])),
+                        add() { this.assignments.push({ class_id: '', subject_id: '' }) },
+                        remove(index) { this.assignments.splice(index, 1) }
+                    }">
+                        <div class="flex justify-between items-center mb-2">
+                            <label class="block text-sm font-bold text-slate-700">Phân công Lớp & Môn (Premium)</label>
+                            <button type="button" @click="add()" class="text-xs font-bold text-blue-600 hover:text-blue-700 flex items-center gap-1">
+                                <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/></svg>
+                                Thêm phân công
+                            </button>
+                        </div>
                         
-                        <div class="bg-slate-50 p-3 rounded-lg border @error('assigned_classes') border-red-500 @else border-slate-200 @enderror h-60 overflow-y-auto">
-                            <div class="grid grid-cols-3 sm:grid-cols-4 gap-2">
-                                @php $cachedClasses = old('assigned_classes', $teacher->assigned_classes ?? []); @endphp
-                                @forelse ($classes as $class)
-                                    <label class="flex items-center gap-2 cursor-pointer p-1.5 hover:bg-slate-100 rounded transition-colors">
-                                        <input type="checkbox" name="assigned_classes[]" value="{{ $class->id }}" class="w-4 h-4 text-emerald-600 rounded" {{ is_array($cachedClasses) && in_array($class->id, $cachedClasses) ? 'checked' : '' }}>
-                                        <span class="text-sm font-semibold text-slate-700">{{ $class->name }}</span>
-                                    </label>
-                                @empty
-                                    <p class="text-sm text-slate-500 col-span-3">Chưa có lớp học nào trong hệ thống.</p>
-                                @endforelse
+                        <div class="space-y-2 max-h-80 overflow-y-auto pr-1 custom-scrollbar">
+                            <template x-for="(item, index) in assignments" :key="index">
+                                <div class="flex gap-2 items-start p-3 bg-white border border-slate-200 rounded-xl shadow-sm">
+                                    <div class="flex-1">
+                                        <select :name="'assignments['+index+'][class_id]'" x-model="item.class_id" required
+                                            class="w-full px-2 py-1.5 text-xs border border-slate-200 rounded-lg focus:outline-none focus:border-blue-500 bg-slate-50 focus:bg-white transition-colors font-bold">
+                                            <option value="">-- Chọn Lớp --</option>
+                                            @foreach($classes as $c)
+                                                <option value="{{ $c->id }}">Lớp {{ $c->name }}</option>
+                                            @endforeach
+                                        </select>
+                                    </div>
+                                    <div class="flex-1">
+                                        <select :name="'assignments['+index+'][subject_id]'" x-model="item.subject_id" required
+                                            class="w-full px-2 py-1.5 text-xs border border-slate-200 rounded-lg focus:outline-none focus:border-blue-500 bg-slate-50 focus:bg-white transition-colors">
+                                            <option value="">-- Chọn Môn --</option>
+                                            @foreach($subjects as $s)
+                                                <option value="{{ $s->id }}">{{ $s->name }}</option>
+                                            @endforeach
+                                        </select>
+                                    </div>
+                                    <button type="button" @click="remove(index)" class="p-1.5 text-red-500 hover:bg-red-50 rounded-lg transition-colors">
+                                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/></svg>
+                                    </button>
+                                </div>
+                            </template>
+                            
+                            <div x-show="assignments.length === 0" class="py-10 text-center border-2 border-dashed border-slate-200 rounded-xl">
+                                <p class="text-xs text-slate-400">Chưa có phân công giảng dạy chi tiết.</p>
+                                <button type="button" @click="add()" class="mt-2 text-xs font-bold text-blue-600">Bấm để thêm mới</button>
                             </div>
                         </div>
-                        @error('assigned_classes')<p class="text-xs text-red-500 mt-1 font-medium">{{ $message }}</p>@enderror
                     </div>
                 </div>
             </div>

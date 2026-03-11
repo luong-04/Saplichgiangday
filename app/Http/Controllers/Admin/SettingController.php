@@ -22,18 +22,25 @@ class SettingController extends Controller
         // Xác thực cơ bản một số trường quan trọng
         $request->validate([
             'school_name' => 'required|string|max:255',
+            'principal_name' => 'nullable|string|max:255',
             'periods_per_day' => 'required|integer|min:1|max:20',
             'days_start' => 'required|integer|between:2,7',
             'days_end' => 'required|integer|between:2,7',
             'lunch_after_period' => 'required|integer|min:1',
             'max_consecutive_periods' => 'required|integer|min:1',
             'max_gap_periods' => 'required|integer|min:0',
-            'enforce_room_assignment' => 'nullable|in:0,1',
+            'chao_co_period' => 'nullable|integer',
+            'sinh_hoat_period' => 'nullable|integer',
+            'check_teacher_conflict' => 'nullable|in:0,1',
+            'check_room_conflict' => 'nullable|in:0,1',
         ]);
 
-        // Đảm bảo checkbox boolean lưu về 0 nếu không được check
-        if (!isset($data['enforce_room_assignment'])) {
-            $data['enforce_room_assignment'] = 0;
+        // Đảm bảo các checkbox boolean
+        $checkboxes = ['check_teacher_conflict', 'check_room_conflict'];
+        foreach ($checkboxes as $cb) {
+            if (!isset($data[$cb])) {
+                $data[$cb] = 0;
+            }
         }
 
         foreach ($data as $key => $value) {

@@ -36,7 +36,7 @@ class ClassRoomController extends Controller
     public function store(Request $request)
     {
         $validated = $request->validate([
-            'name' => 'required|string|max:50|unique:class_rooms',
+            'name' => 'required|string|max:50|unique:classes',
             'grade' => 'required|integer|in:10,11,12',
             'shift' => 'required|in:morning,afternoon',
             'default_room_id' => 'nullable|exists:rooms,id',
@@ -56,7 +56,7 @@ class ClassRoomController extends Controller
     public function update(Request $request, ClassRoom $classRoom)
     {
         $validated = $request->validate([
-            'name' => 'required|string|max:50|unique:class_rooms,name,' . $classRoom->id,
+            'name' => 'required|string|max:50|unique:classes,name,' . $classRoom->id,
             'grade' => 'required|integer|in:10,11,12',
             'shift' => 'required|in:morning,afternoon',
             'default_room_id' => 'nullable|exists:rooms,id',

@@ -35,7 +35,7 @@
                 </tr>
             </thead>
             <tbody class="divide-y divide-slate-100">
-                @forelse ($categories as $category)
+                @forelse($categories as $category)
                 <tr class="hover:bg-slate-50/50 transition-colors">
                     <td class="px-6 py-4">
                         <div class="font-bold text-slate-800">{{ $category->name }}</div>

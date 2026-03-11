@@ -47,6 +47,16 @@ class Setting extends Model
         return (int)static::get('periods_per_day', 10);
     }
 
+    public static function schoolName(): string
+    {
+        return static::get('school_name', 'TRƯỜNG THPT CHUYÊN ...');
+    }
+
+    public static function principalName(): string
+    {
+        return static::get('principal_name', 'Nguyễn Văn A');
+    }
+
     public static function daysStart(): int
     {
         return (int)static::get('days_start', 2);

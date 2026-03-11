@@ -20,7 +20,7 @@ class ClassRoom extends Model
     }
 
     // Giáo viên chủ nhiệm
-    public function teacher()
+    public function homeroomTeacher()
     {
         return $this->hasOne(Teacher::class , 'homeroom_class_id');
     }
