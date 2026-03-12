@@ -74,9 +74,6 @@
                     <td class="px-6 py-4">
                         <div class="flex items-center gap-2">
                             <span class="text-sm font-extrabold text-slate-800">{{ $curriculum->lessons_per_week }}</span>
-                            @if($curriculum->lessons_per_week != $curriculum->subject->lessons_per_week)
-                                <span class="text-[10px] text-orange-500 font-medium bg-orange-50 px-1.5 py-0.5 rounded border border-orange-100">(Lệch chuẩn: {{ $curriculum->subject->lessons_per_week }})</span>
-                            @endif
                         </div>
                     </td>
                     <td class="px-6 py-4 text-right">

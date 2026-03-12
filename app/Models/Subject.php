@@ -13,20 +13,11 @@ class Subject extends Model
         'name',
         'type',
         'is_fixed',
-        'lessons_per_week',
-        'max_lessons_per_day',
-        'consecutive_periods',
-        'max_periods_per_day',
         'room_category_id',
     ];
 
     protected $casts = [
         'is_fixed' => 'boolean',
-        'is_double_period' => 'boolean',
-        'lessons_per_week' => 'integer',
-        'max_lessons_per_day' => 'integer',
-        'consecutive_periods' => 'integer',
-        'max_periods_per_day' => 'integer',
     ];
 
     public function teachers()

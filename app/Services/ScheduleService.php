@@ -266,13 +266,8 @@ class ScheduleService
      */
     public function autoAssignFixedPeriods(ClassRoom $class): int
     {
-        // Chỉ gán nếu lớp có GVCN
-        $gvcn = Teacher::where('homeroom_class_id', $class->id)->first();
-        if (!$gvcn) {
-            return 0; // Lớp chưa có GVCN → bỏ qua hoàn toàn
-        }
-
         $fixedPeriods = $this->getFixedPeriodsForClass($class);
+        $gvcn = Teacher::where('homeroom_class_id', $class->id)->first();
         $count = 0;
 
         foreach ($fixedPeriods as $fp) {
@@ -284,19 +279,21 @@ class ScheduleService
             if ($existing)
                 continue;
 
-            // Tìm hoặc TẠO subject
+            // Lấy hoặc tạo Subject dựa trên tên trong bảng FixedPeriod
             $subject = Subject::where('name', $fp->subject_name)->first();
             if (!$subject) {
                 $subject = Subject::create([
                     'name' => $fp->subject_name,
-                    'type' => '0',
-                    'lessons_per_week' => 1,
-                    'max_lessons_per_day' => 1,
+                    'is_fixed' => true,
                 ]);
             }
 
+            // Logic gán giáo viên: 
+            // Nếu fp yêu cầu gán GVCN VÀ lớp có GVCN thì lấy ID, ngược lại để null
+            $assignedTeacherId = ($fp->auto_assign_homeroom && $gvcn) ? $gvcn->id : null;
+
             Schedule::create([
-                'teacher_id' => $gvcn->id,
+                'teacher_id' => $assignedTeacherId,
                 'class_id' => $class->id,
                 'subject_id' => $subject->id,
                 'day' => $fp->day,
@@ -338,8 +335,8 @@ class ScheduleService
 
     public function isFixedSubject(Subject $subject): bool
     {
-        $name = mb_strtolower($subject->name);
-        return str_contains($name, 'chào cờ') || str_contains($name, 'sinh hoạt');
+        // Kiểm tra trực tiếp flag is_fixed trong database
+        return (bool)$subject->is_fixed;
     }
 
     private function checkTeacherAvailability(Teacher $teacher, $day, $period)

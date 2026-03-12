@@ -186,23 +186,18 @@ class TimetableController extends Controller
 
     public function autoSchedule(Request $request)
     {
-        // 1. Chạy AutoAssignFixedPeriods cho tất cả các lớp trước
+        // 1. Chỉ thực hiện gán các tiết cố định theo cấu hình
         $classes = ClassRoom::all();
+        $totalFixed = 0;
         foreach ($classes as $class) {
-            $this->scheduleService->autoAssignFixedPeriods($class);
+            $totalFixed += $this->scheduleService->autoAssignFixedPeriods($class);
         }
 
-        // 2. Chạy AutoScheduleService để xếp các môn còn lại
-        $clearExisting = $request->boolean('clear', true); // Mặc định là xóa trắng TKB hiện tại (trừ các tiết cố định)
-        $stats = $this->autoScheduleService->run($clearExisting);
+        // 2. Không chạy AutoScheduleService->run() nữa 
+        // Hoặc nếu chạy, chỉ chạy một logic rất nhẹ để kiểm tra lỗi.
 
-        $msg = "Xếp tự động hoàn tất. Thành công: {$stats['success']} tiết. Thất bại: {$stats['failed']} tiết.";
-
-        if ($stats['failed'] > 0) {
-            session()->flash('warning', "Không thể xếp hết 100% tiết học, vui lòng xếp tay thêm.");
-        }
-
-        return redirect()->route('admin.timetable.matrix')->with('success', $msg);
+        return redirect()->route('admin.timetable.matrix')
+            ->with('success', "Đã tự động điền $totalFixed tiết cố định vào TKB.");
     }
 
     public function updateSchedule(Request $request, $id)
@@ -232,6 +227,7 @@ class TimetableController extends Controller
         $schedule->update([
             'day' => $newDay,
             'period' => $newPeriod,
+            'is_manual' => true,
         ]);
         return response()->json(['success' => true]);
     }
@@ -293,6 +289,7 @@ class TimetableController extends Controller
                 'day' => $oldDay,
                 'period' => $oldPeriod,
                 'class_id' => $oldClassId,
+                'is_manual' => true,
             ]);
         }
 
@@ -301,6 +298,7 @@ class TimetableController extends Controller
             'day' => $data['target_day'],
             'period' => $data['target_period'],
             'class_id' => $data['target_class_id'],
+            'is_manual' => true,
         ]);
 
         return response()->json(['success' => true, 'swapped' => $targetSchedule !== null]);
@@ -334,6 +332,7 @@ class TimetableController extends Controller
         // Xóa tiết cũ tại ô này (nếu có - thực tế validate() class_id/day/period conflict sẽ bắt được, 
         // nhưng nếu muốn ghi đè thì phải xử lý khác. Ở đây ta tuân thủ validate() chặn trùng)
 
+        $data['is_manual'] = true;
         Schedule::create($data);
         return response()->json(['success' => true]);
     }

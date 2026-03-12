@@ -35,29 +35,36 @@ class FixedPeriodController extends Controller
         $validated = $request->validate([
             'subject_name' => 'required|string|max:255',
             'day' => 'required|integer|between:2,7',
-            'period' => 'required|integer|between:1,10',
+            'periods' => 'required|array',
+            'periods.*' => 'integer|between:1,10',
             'shift' => 'required|in:morning,afternoon',
             'auto_assign_homeroom' => 'nullable|boolean',
         ]);
 
-        $exists = FixedPeriod::where('day', $validated['day'])
-            ->where('period', $validated['period'])
-            ->where('shift', $validated['shift'])
-            ->exists();
+        $count = 0;
+        foreach ($validated['periods'] as $period) {
+            $exists = FixedPeriod::where('day', $validated['day'])
+                ->where('period', $period)
+                ->where('shift', $validated['shift'])
+                ->exists();
 
-        if ($exists) {
-            return back()->with('error', 'Đã tồn tại Tiết cố định tại thời gian này.')->withInput();
+            if (!$exists) {
+                FixedPeriod::create([
+                    'subject_name' => $validated['subject_name'],
+                    'day' => $validated['day'],
+                    'period' => $period,
+                    'shift' => $validated['shift'],
+                    'auto_assign_homeroom' => $request->boolean('auto_assign_homeroom'),
+                ]);
+                $count++;
+            }
         }
 
-        FixedPeriod::create([
-            'subject_name' => $validated['subject_name'],
-            'day' => $validated['day'],
-            'period' => $validated['period'],
-            'shift' => $validated['shift'],
-            'auto_assign_homeroom' => $request->boolean('auto_assign_homeroom'),
-        ]);
+        if ($count === 0) {
+            return back()->with('error', 'Đã tồn tại Tiết cố định tại các thời gian được chọn.')->withInput();
+        }
 
-        return redirect()->route('admin.fixed-periods.index')->with('success', 'Thêm tiết cố định thành công.');
+        return redirect()->route('admin.fixed-periods.index')->with('success', "Đã thêm $count tiết cố định thành công.");
     }
 
     public function edit(FixedPeriod $fixedPeriod)
@@ -79,6 +86,7 @@ class FixedPeriodController extends Controller
             $exists = FixedPeriod::where('day', $validated['day'])
                 ->where('period', $validated['period'])
                 ->where('shift', $validated['shift'])
+                ->where('id', '!=', $fixedPeriod->id)
                 ->exists();
 
             if ($exists) {

@@ -40,14 +40,15 @@
                 </div>
 
                 <div>
-                    <label class="block text-sm font-bold text-slate-700 mb-1" for="period">Tiết <span class="text-red-500">*</span></label>
-                    <select id="period" name="period" required
-                        class="w-full px-3 py-2 border @error('period') border-red-500 @else border-slate-200 @enderror rounded-lg focus:outline-none focus:border-blue-500 bg-slate-50 focus:bg-white transition-colors">
+                    <label class="block text-sm font-bold text-slate-700 mb-1" for="periods">Tiết (Chọn nhiều) <span class="text-red-500">*</span></label>
+                    <select id="periods" name="periods[]" multiple required
+                        class="w-full px-3 py-2 border @error('periods') border-red-500 @else border-slate-200 @enderror rounded-lg focus:outline-none focus:border-blue-500 bg-slate-50 focus:bg-white transition-colors h-32">
                         @for($i = 1; $i <= 10; $i++)
-                            <option value="{{ $i }}" {{ old('period') == $i ? 'selected' : '' }}>Tiết {{ $i }}</option>
+                            <option value="{{ $i }}" {{ (is_array(old('periods')) && in_array($i, old('periods'))) ? 'selected' : '' }}>Tiết {{ $i }}</option>
                         @endfor
                     </select>
-                    @error('period')<p class="text-xs text-red-500 mt-1 font-medium">{{ $message }}</p>@enderror
+                    <p class="text-[10px] text-slate-400 mt-1 italic">Giữ phím Ctrl (hoặc Cmd) để chọn nhiều tiết</p>
+                    @error('periods')<p class="text-xs text-red-500 mt-1 font-medium">{{ $message }}</p>@enderror
                 </div>
             </div>
 

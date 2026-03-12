@@ -16,6 +16,7 @@ class Schedule extends Model
         'day',
         'period',
         'room_id',
+        'is_manual',
     ];
 
     public function teacher()

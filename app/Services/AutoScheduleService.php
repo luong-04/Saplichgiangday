@@ -34,13 +34,17 @@ class AutoScheduleService
         $prioritizedSubjects = $subjects->sortByDesc(function ($subject) {
             $score = 0;
             if ($subject->room_category_id)
-                $score += 100;
+                $score += 1000;
             if ($subject->consecutive_periods > 1)
-                $score += 50;
+                $score += 500;
             return $score;
         });
 
         $this->validator->clearCache();
+        $cachedSchedules = $this->validator->loadSchedules();
+
+        $teachers = Teacher::with('subjects')->get();
+        $rooms = Room::where('status', true)->get();
 
         $stats = [
             'success' => 0,
@@ -64,7 +68,9 @@ class AutoScheduleService
                     ->where('grade', $class->grade)
                     ->first();
                 $targetLessons = $curriculum ? $curriculum->lessons_per_week : $subject->lessons_per_week;
-                $currentLessons = Schedule::where('subject_id', $subject->id)
+
+                // PERFORMANCE: Use cachedSchedules instead of DB query
+                $currentLessons = $cachedSchedules->where('subject_id', $subject->id)
                     ->where('class_id', $class->id)
                     ->count();
 
@@ -73,107 +79,108 @@ class AutoScheduleService
                 while ($needed > 0) {
                     $scheduled = false;
 
-                    // Lấy giáo viên được phân công đích danh thông qua assigned_classes (JSON) và môn học (Bảng pivot)
-                    // Teacher cần có subject_id trong teacher_subject và class_id trong assigned_classes
-                    $teachers = Teacher::whereHas('subjects', function ($q) use ($subject) {
-                        $q->where('subject_id', $subject->id);
-                    })->whereJsonContains('assigned_classes', (string)$class->id)->get();
+                    // Lấy giáo viên được phân công đích danh
+                    $classTeachers = $teachers->filter(function ($t) use ($subject, $class) {
+                        return $t->subjects->contains('id', $subject->id) &&
+                        is_array($t->assigned_classes) &&
+                        in_array((string)$class->id, $t->assigned_classes);
+                    });
 
-                    // Yêu cầu: Bắt buộc phải có phân công chuyên môn cụ thể (TeacherAssignment)
-                    if ($teachers->isEmpty()) {
+                    if ($classTeachers->isEmpty()) {
                         $stats['failed']++;
-                        $stats['errors'][] = "Lớp {$class->name} - Môn {$subject->name}: Thiếu {$needed} tiết. Chưa có Giáo viên nào được phân công dạy (Teacher Assignment).";
+                        $stats['errors'][] = "Lớp {$class->name} - Môn {$subject->name}: Thiếu {$needed} tiết. Chưa có Giáo viên nào được phân công dạy.";
                         break;
                     }
 
-                    // Sắp xếp giáo viên theo số tiết còn lại giảm dần (để ưu tiên người còn rảnh)
-                    $teachers = $teachers->sortByDesc(function ($t) {
-                        $assigned = Schedule::where('teacher_id', $t->id)->count();
-                        return $t->quota - $assigned;
+                    // Sắp xếp giáo viên theo số tiết còn lại giảm dần
+                    $classTeachers = $classTeachers->sortByDesc(function ($t) use ($cachedSchedules) {
+                        $assigned = $cachedSchedules->where('teacher_id', $t->id)->count();
+                        return ($t->quota ?? 17) - $assigned;
                     });
 
-                    // Tìm một slot khả dĩ
-                    foreach ($teachers as $teacher) {
+                    // Tính số tiết liền lớn nhất có thể xếp trong lần này
+                    $consecutiveToTry = ($subject->consecutive_periods > 1 && $needed > 1) ? min($needed, $subject->consecutive_periods) : 1;
 
-                        // Nếu giáo viên có quy định loại phòng dạy, và môn học yêu cầu phòng -> phải khớp
-                        if ($subject->room_category_id && $teacher->room_category_ids) {
-                            if (!in_array($subject->room_category_id, $teacher->room_category_ids)) {
-                                continue; // Bỏ qua giáo viên này
+                    // SLICING LOGIC: If we can't fit consecutive, we try smaller until 1
+                    for ($c = $consecutiveToTry; $c >= 1; $c--) {
+                        foreach ($classTeachers as $teacher) {
+                            if ($subject->room_category_id && $teacher->room_category_ids) {
+                                if (!in_array($subject->room_category_id, $teacher->room_category_ids)) {
+                                    continue;
+                                }
                             }
-                        }
 
-                        $rooms = collect([null]);
-                        if ($subject->room_category_id) {
-                            $rooms = Room::where('room_category_id', $subject->room_category_id)
-                                ->where('status', true)
-                                ->where('capacity', '>=', $class->student_count)
-                                ->get();
-                        }
-                        else if ($class->default_room_id) {
-                            // Mặc định nạp phòng của lớp nếu không yêu cầu phòng chức năng
-                            $defaultRoom = Room::find($class->default_room_id);
-                            if ($defaultRoom) {
-                                $rooms = collect([$defaultRoom]);
+                            $availableRooms = collect([null]);
+                            if ($subject->room_category_id) {
+                                $availableRooms = $rooms->filter(function ($r) use ($subject, $class) {
+                                    return $r->room_category_id == $subject->room_category_id &&
+                                    $r->capacity >= $class->student_count;
+                                });
                             }
-                        }
+                            else if ($class->default_room_id) {
+                                $defaultRoom = $rooms->firstWhere('id', $class->default_room_id);
+                                if ($defaultRoom) {
+                                    $availableRooms = collect([$defaultRoom]);
+                                }
+                            }
 
-                        // Tính số tiết liền lớn nhất có thể xếp trong lần này
-                        $consecutiveToTry = ($subject->consecutive_periods > 1 && $needed > 1) ? min($needed, $subject->consecutive_periods) : 1;
+                            foreach ($days as $day) {
+                                foreach ($periods as $period) {
+                                    foreach ($availableRooms as $room) {
+                                        $roomId = $room ? $room->id : null;
 
-                        foreach ($days as $day) {
-                            foreach ($periods as $period) {
-                                foreach ($rooms as $room) {
-                                    $roomId = $room ? $room->id : null;
-
-                                    if ($consecutiveToTry > 1) {
-                                        $result = $this->validator->validateMultiPeriod($teacher->id, $class->id, $subject->id, $day, $period, $roomId, null, $consecutiveToTry);
-                                        if (isset($result['ok'])) {
-                                            foreach ($result['periods'] as $p) {
-                                                Schedule::create([
+                                        if ($c > 1) {
+                                            $result = $this->validator->validateMultiPeriod($teacher->id, $class->id, $subject->id, $day, $period, $roomId, null, $c);
+                                            if (isset($result['ok'])) {
+                                                foreach ($result['periods'] as $p) {
+                                                    $newSchedule = Schedule::create([
+                                                        'teacher_id' => $teacher->id,
+                                                        'class_id' => $class->id,
+                                                        'subject_id' => $subject->id,
+                                                        'room_id' => $roomId,
+                                                        'day' => $day,
+                                                        'period' => $p,
+                                                        'is_manual' => false,
+                                                    ]);
+                                                    $cachedSchedules->push($newSchedule);
+                                                }
+                                                $needed -= count($result['periods']);
+                                                $stats['success']++;
+                                                $scheduled = true;
+                                                break 4;
+                                            }
+                                        }
+                                        else {
+                                            $error = $this->validator->validate($teacher->id, $class->id, $subject->id, $day, $period, $roomId);
+                                            if (!$error) {
+                                                $newSchedule = Schedule::create([
                                                     'teacher_id' => $teacher->id,
                                                     'class_id' => $class->id,
                                                     'subject_id' => $subject->id,
                                                     'room_id' => $roomId,
                                                     'day' => $day,
-                                                    'period' => $p,
+                                                    'period' => $period,
+                                                    'is_manual' => false,
                                                 ]);
+                                                $cachedSchedules->push($newSchedule);
+                                                $needed--;
+                                                $stats['success']++;
+                                                $scheduled = true;
+                                                break 4;
                                             }
-                                            $this->validator->clearCache();
-                                            $needed -= count($result['periods']);
-                                            $stats['success']++;
-                                            $scheduled = true;
-                                            break 4; // Break out of all loops to schedule the next lesson limit constraint
-                                        }
-                                    }
-                                    else {
-                                        $error = $this->validator->validate($teacher->id, $class->id, $subject->id, $day, $period, $roomId);
-                                        if (!$error) {
-                                            // Xếp thành công
-                                            Schedule::create([
-                                                'teacher_id' => $teacher->id,
-                                                'class_id' => $class->id,
-                                                'subject_id' => $subject->id,
-                                                'room_id' => $roomId,
-                                                'day' => $day,
-                                                'period' => $period,
-                                            ]);
-                                            $this->validator->clearCache();
-                                            $needed--;
-                                            $stats['success']++;
-                                            $scheduled = true;
-                                            break 4;
                                         }
                                     }
                                 }
                             }
                         }
+                        if ($scheduled)
+                            break; // If we scheduled something (even a slice), go back to recalculate needed and try the next lesson
                     }
 
                     if (!$scheduled) {
-                        // Không thể xếp được thêm cho môn này của lớp này
                         $stats['failed']++;
                         $stats['errors'][] = "Lớp {$class->name} - Môn {$subject->name}: Thiếu {$needed} tiết không thể xếp do kẹt ràng buộc.";
-                        break; // Thoát vòng lặp while needed
+                        break;
                     }
                 }
             }
@@ -187,9 +194,11 @@ class AutoScheduleService
         $schedules = Schedule::all();
         foreach ($schedules as $s) {
             $subject = Subject::find($s->subject_id);
-            if (!$subject || !$this->validator->isFixedSubject($subject)) {
-                $s->delete();
+            // Protect: 1. Fixed Subjects, 2. Manual Schedules
+            if ($subject && ($this->validator->isFixedSubject($subject) || $s->is_manual)) {
+                continue;
             }
+            $s->delete();
         }
     }
 }

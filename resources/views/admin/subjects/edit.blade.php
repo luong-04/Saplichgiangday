@@ -73,40 +73,6 @@
                 </div>
             </div>
 
-            <!-- Cấu hình Xếp lịch -->
-            <div class="space-y-5">
-                <h3 class="text-lg font-bold text-slate-800 border-b border-slate-100 pb-2">Ràng buộc Xếp lịch</h3>
-                
-                <div class="grid grid-cols-2 gap-4">
-                    <div>
-                        <label class="block text-sm font-bold text-slate-700 mb-1" for="lessons_per_week">Số tiết / Tuần <span class="text-red-500">*</span></label>
-                        <input type="number" id="lessons_per_week" name="lessons_per_week" value="{{ old('lessons_per_week', $subject->lessons_per_week) }}" min="1" required
-                            class="w-full px-3 py-2 border @error('lessons_per_week') border-red-500 @else border-slate-200 @enderror rounded-lg focus:outline-none focus:border-blue-500 bg-slate-50 focus:bg-white transition-colors">
-                        @error('lessons_per_week')<p class="text-xs text-red-500 mt-1 font-medium">{{ $message }}</p>@enderror
-                    </div>
-                    <div>
-                        <label class="block text-sm font-bold text-slate-700 mb-1" for="max_lessons_per_day">Tối đa tiết / Ngày <span class="text-red-500">*</span></label>
-                        <input type="number" id="max_lessons_per_day" name="max_lessons_per_day" value="{{ old('max_lessons_per_day', $subject->max_lessons_per_day) }}" min="1" max="5" required
-                            class="w-full px-3 py-2 border @error('max_lessons_per_day') border-red-500 @else border-slate-200 @enderror rounded-lg focus:outline-none focus:border-blue-500 bg-slate-50 focus:bg-white transition-colors">
-                        @error('max_lessons_per_day')<p class="text-xs text-red-500 mt-1 font-medium">{{ $message }}</p>@enderror
-                    </div>
-                </div>
-
-                <div class="grid grid-cols-2 gap-4">
-                    <div>
-                        <label class="block text-sm font-bold text-slate-700 mb-1" for="consecutive_periods">Số tiết liền mạch <span class="text-red-500">*</span></label>
-                        <input type="number" id="consecutive_periods" name="consecutive_periods" value="{{ old('consecutive_periods', $subject->consecutive_periods) }}" min="1" max="5" required
-                            class="w-full px-3 py-2 border @error('consecutive_periods') border-red-500 @else border-slate-200 @enderror rounded-lg focus:outline-none focus:border-blue-500 bg-slate-50 focus:bg-white transition-colors">
-                        @error('consecutive_periods')<p class="text-xs text-red-500 mt-1 font-medium">{{ $message }}</p>@enderror
-                    </div>
-                    <div>
-                        <label class="block text-sm font-bold text-slate-700 mb-1" for="max_periods_per_day">Tối đa dạy/ngày/GV <span class="text-red-500">*</span></label>
-                        <input type="number" id="max_periods_per_day" name="max_periods_per_day" value="{{ old('max_periods_per_day', $subject->max_periods_per_day) }}" min="1" max="10" required
-                            class="w-full px-3 py-2 border @error('max_periods_per_day') border-red-500 @else border-slate-200 @enderror rounded-lg focus:outline-none focus:border-blue-500 bg-slate-50 focus:bg-white transition-colors">
-                        @error('max_periods_per_day')<p class="text-xs text-red-500 mt-1 font-medium">{{ $message }}</p>@enderror
-                    </div>
-                </div>
-            </div>
         </div>
 
         <div class="mt-8 pt-6 border-t border-slate-100 flex justify-end gap-3">

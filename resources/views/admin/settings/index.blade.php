@@ -11,7 +11,7 @@
 <form action="{{ route('admin.settings.store') }}" method="POST">
     @csrf
 
-    <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
         <!-- Thông tin chung -->
         <div class="content-card">
             <div class="p-5 border-b border-slate-100 bg-slate-50/50 rounded-t-xl">
@@ -42,44 +42,6 @@
             </div>
         </div>
 
-        <!-- Cấu hình Tiết cố định (MỚI) -->
-        <div class="content-card">
-            <div class="p-5 border-b border-slate-100 bg-slate-50/50 rounded-t-xl">
-                <h2 class="text-lg font-bold text-slate-800 flex items-center gap-2">
-                    <svg class="w-5 h-5 text-amber-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 5a2 2 0 012-2h10a2 2 0 012 2v16l-7-3.5L5 21V5z"/></svg>
-                    Tiết cố định & Ràng buộc
-                </h2>
-            </div>
-            <div class="p-6 space-y-4">
-                <div class="grid grid-cols-2 gap-4">
-                    <div>
-                        <label class="block text-xs font-black text-slate-500 uppercase mb-1">Tiết Chào cờ</label>
-                        <select name="chao_co_period" class="w-full px-3 py-2 border border-slate-200 rounded-lg text-sm font-bold bg-slate-50">
-                            <option value="1" {{ ($settings['chao_co_period']->value ?? 1) == 1 ? 'selected' : '' }}>Tiết 1 (Sáng)</option>
-                            <option value="6" {{ ($settings['chao_co_period']->value ?? 1) == 6 ? 'selected' : '' }}>Tiết 1 (Chiều)</option>
-                        </select>
-                    </div>
-                    <div>
-                        <label class="block text-xs font-black text-slate-500 uppercase mb-1">Tiết Sinh hoạt</label>
-                        <select name="sinh_hoat_period" class="w-full px-3 py-2 border border-slate-200 rounded-lg text-sm font-bold bg-slate-50">
-                            <option value="5" {{ ($settings['sinh_hoat_period']->value ?? 5) == 5 ? 'selected' : '' }}>Tiết 5 (T7 Sáng)</option>
-                            <option value="10" {{ ($settings['sinh_hoat_period']->value ?? 10) == 10 ? 'selected' : '' }}>Tiết 10 (T7 Chiều)</option>
-                        </select>
-                    </div>
-                </div>
-
-                <div class="space-y-3 pt-2">
-                    <label class="flex items-center gap-3 cursor-pointer p-2 hover:bg-slate-50 rounded-lg transition-colors border border-transparent hover:border-slate-100">
-                        <input type="checkbox" name="check_teacher_conflict" value="1" class="w-5 h-5 text-blue-600 rounded" {{ ($settings['check_teacher_conflict']->value ?? 1) ? 'checked' : '' }}>
-                        <span class="text-sm font-bold text-slate-700">Kiểm tra trùng giờ Giáo viên</span>
-                    </label>
-                    <label class="flex items-center gap-3 cursor-pointer p-2 hover:bg-slate-50 rounded-lg transition-colors border border-transparent hover:border-slate-100">
-                        <input type="checkbox" name="check_room_conflict" value="1" class="w-5 h-5 text-blue-600 rounded" {{ ($settings['check_room_conflict']->value ?? 1) ? 'checked' : '' }}>
-                        <span class="text-sm font-bold text-slate-700">Kiểm tra trùng Phòng thực hành</span>
-                    </label>
-                </div>
-            </div>
-        </div>
 
         <!-- Cấu hình Ca học -->
         <div class="content-card">
@@ -150,10 +112,9 @@
         </div>
     </div>
 
-    <div class="mt-8 flex justify-end gap-3">
-        <button type="submit" class="px-8 py-3 bg-blue-600 text-white rounded-xl text-sm font-bold hover:bg-blue-700 shadow-lg shadow-blue-200 transition-colors flex items-center gap-2">
-            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7H5a2 2 0 00-2 2v9a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-3m-1 4l-3 3m0 0l-3-3m3 3V4"/></svg>
-            Lưu Cấu hình Hệ thống
+    <div class="mt-8 flex justify-center">
+        <button type="submit" class="px-8 py-2 bg-blue-600 text-white rounded-lg font-bold hover:bg-blue-700 transition-all shadow-md w-auto">
+            Lưu cấu hình
         </button>
     </div>
 </form>
